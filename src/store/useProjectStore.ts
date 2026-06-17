@@ -8,9 +8,11 @@ import type {
   ChannelMatrix,
   KPISettings,
   ExecutionPlan,
+  ABTestPlan,
 } from '@/types'
 import { savePlan, getPlan, deletePlan, getPlanList } from '@/utils/storage'
 import { generateId, deepClone, formatDateTime } from '@/utils/helpers'
+import { generateABTestPlan, type ABTestGenerationOptions } from '@/engine/abTestEngine'
 
 interface ProjectStore {
   currentPlan: MarketingPlan | null
@@ -32,6 +34,12 @@ interface ProjectStore {
   updateChannelMatrix: (channelMatrix: Partial<ChannelMatrix>) => void
   updateKPISettings: (kpiSettings: Partial<KPISettings>) => void
   updateExecutionPlan: (executionPlan: Partial<ExecutionPlan>) => void
+
+  generateABTestPlan: (options?: ABTestGenerationOptions) => ABTestPlan | null
+  addABTestPlan: (abTestPlan: ABTestPlan) => void
+  updateABTestPlan: (id: string, updates: Partial<ABTestPlan>) => void
+  deleteABTestPlan: (id: string) => void
+  getABTestPlanById: (id: string) => ABTestPlan | undefined
 
   setCurrentPlan: (plan: MarketingPlan | null) => void
   clearError: () => void
@@ -126,6 +134,7 @@ function createEmptyPlan(name: string = '未命名方案'): MarketingPlan {
       risks: [],
       optimizationPlan: '',
     },
+    abTestPlans: [],
   }
 }
 
@@ -354,6 +363,77 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
         },
       },
     })
+  },
+
+  generateABTestPlan: (options?: ABTestGenerationOptions): ABTestPlan | null => {
+    const { currentPlan } = get()
+    if (!currentPlan) return null
+
+    const { brandInfo, targetAudience, strategy } = currentPlan
+
+    if (!brandInfo.brandName || !strategy.coreIdea) {
+      return null
+    }
+
+    const abTestPlan = generateABTestPlan(brandInfo, targetAudience, strategy, options)
+
+    const updatedPlan = {
+      ...currentPlan,
+      abTestPlans: [...(currentPlan.abTestPlans || []), abTestPlan],
+    }
+
+    set({ currentPlan: updatedPlan })
+
+    return abTestPlan
+  },
+
+  addABTestPlan: (abTestPlan: ABTestPlan) => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    const updatedPlan = {
+      ...currentPlan,
+      abTestPlans: [...(currentPlan.abTestPlans || []), abTestPlan],
+    }
+
+    set({ currentPlan: updatedPlan })
+  },
+
+  updateABTestPlan: (id: string, updates: Partial<ABTestPlan>) => {
+    const { currentPlan } = get()
+    if (!currentPlan || !currentPlan.abTestPlans) return
+
+    const updatedPlans = currentPlan.abTestPlans.map((plan) =>
+      plan.id === id ? { ...plan, ...updates, updatedAt: formatDateTime(new Date()) } : plan
+    )
+
+    set({
+      currentPlan: {
+        ...currentPlan,
+        abTestPlans: updatedPlans,
+      },
+    })
+  },
+
+  deleteABTestPlan: (id: string) => {
+    const { currentPlan } = get()
+    if (!currentPlan || !currentPlan.abTestPlans) return
+
+    const updatedPlans = currentPlan.abTestPlans.filter((plan) => plan.id !== id)
+
+    set({
+      currentPlan: {
+        ...currentPlan,
+        abTestPlans: updatedPlans,
+      },
+    })
+  },
+
+  getABTestPlanById: (id: string): ABTestPlan | undefined => {
+    const { currentPlan } = get()
+    if (!currentPlan || !currentPlan.abTestPlans) return undefined
+
+    return currentPlan.abTestPlans.find((plan) => plan.id === id)
   },
 
   setCurrentPlan: (plan: MarketingPlan | null) => {

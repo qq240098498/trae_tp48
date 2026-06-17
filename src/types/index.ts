@@ -203,6 +203,91 @@ export interface ExecutionPlan {
 }
 
 /**
+ * A/B测试变量类型
+ */
+export type ABTestVariableType = 'title' | 'heroImage' | 'ctaButton' | 'description' | 'price'
+
+/**
+ * A/B测试变体
+ */
+export interface ABTestVariant {
+  id: string
+  name: string
+  variableType: ABTestVariableType
+  content: string
+  description?: string
+  isControl?: boolean
+}
+
+/**
+ * A/B测试变量组
+ */
+export interface ABTestVariableGroup {
+  id: string
+  type: ABTestVariableType
+  name: string
+  description: string
+  variants: ABTestVariant[]
+}
+
+/**
+ * 样本量计算结果
+ */
+export interface SampleSizeCalculation {
+  baselineConversionRate: number
+  minimumDetectableEffect: number
+  confidenceLevel: number
+  statisticalPower: number
+  requiredSampleSizePerVariant: number
+  totalRequiredSampleSize: number
+  explanation: string
+}
+
+/**
+ * 分流配置
+ */
+export interface TrafficSplitConfig {
+  controlGroup: number
+  testGroups: Array<{
+    variantId: string
+    percentage: number
+  }>
+  totalPercentage: number
+}
+
+/**
+ * 判定标准
+ */
+export interface ABTestCriteria {
+  primaryMetric: string
+  confidenceLevel: number
+  minimumLift: number
+  statisticalPower: number
+  winningCondition: string
+  stoppingRules: string[]
+}
+
+/**
+ * A/B测试方案
+ */
+export interface ABTestPlan {
+  id: string
+  name: string
+  description: string
+  status: 'draft' | 'running' | 'completed' | 'paused'
+  materialType: string
+  hypothesis: string
+  variableGroups: ABTestVariableGroup[]
+  sampleSize: SampleSizeCalculation
+  trafficSplit: TrafficSplitConfig
+  criteria: ABTestCriteria
+  expectedDuration: string
+  notes?: string
+  createdAt?: string
+  updatedAt?: string
+}
+
+/**
  * 完整营销方案
  */
 export interface MarketingPlan {
@@ -213,4 +298,5 @@ export interface MarketingPlan {
   channelMatrix: ChannelMatrix
   kpiSettings: KPISettings
   executionPlan: ExecutionPlan
+  abTestPlans?: ABTestPlan[]
 }
