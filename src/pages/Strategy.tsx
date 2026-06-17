@@ -122,7 +122,7 @@ interface ExpandedTopics {
 export default function StrategyPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { currentPlan, loadPlan, updateStrategy, saveCurrentPlan, generateHotTopicRecommendations } = useProjectStore();
+  const { currentPlan, loadPlan, updateStrategy, saveCurrentPlan, generateHotTopicRecommendations, error } = useProjectStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState(0);
@@ -133,12 +133,19 @@ export default function StrategyPage() {
   const [localKeyMessages, setLocalKeyMessages] = useState<KeyMessage[]>([]);
   const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
   const [expandedTopics, setExpandedTopics] = useState<ExpandedTopics>({});
+  const [generationError, setGenerationError] = useState<string | null>(null);
 
   useEffect(() => {
     if (id && (!currentPlan || currentPlan.project.id !== id)) {
       loadPlan(id);
     }
   }, [id, currentPlan, loadPlan]);
+
+  useEffect(() => {
+    if (error && !currentPlan && id) {
+      navigate('/', { replace: true });
+    }
+  }, [error, currentPlan, id, navigate]);
 
   useEffect(() => {
     if (currentPlan?.strategy?.keyMessages) {
@@ -179,17 +186,23 @@ export default function StrategyPage() {
     if (!brandInfo || !targetAudience || !canGenerate) return;
 
     setIsGenerating(true);
+    setGenerationError(null);
     setGenerationStep(0);
 
-    for (let i = 0; i < generationSteps.length; i++) {
-      await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 400));
-      setGenerationStep(i);
-    }
+    try {
+      for (let i = 0; i < generationSteps.length; i++) {
+        await new Promise((resolve) => setTimeout(resolve, 600 + Math.random() * 400));
+        setGenerationStep(i);
+      }
 
-    const newStrategy = generateStrategy(brandInfo, targetAudience);
-    updateStrategy(newStrategy);
-    setActiveVersion(0);
-    setIsGenerating(false);
+      const newStrategy = generateStrategy(brandInfo, targetAudience);
+      updateStrategy(newStrategy);
+      setActiveVersion(0);
+    } catch (err) {
+      setGenerationError(err instanceof Error ? err.message : '策略生成失败，请重试');
+    } finally {
+      setIsGenerating(false);
+    }
   };
 
   const handleRegenerate = async () => {
@@ -278,11 +291,16 @@ export default function StrategyPage() {
     if (!brandInfo?.brandName || !brandInfo?.industry) return;
 
     setIsGeneratingTopics(true);
-    await new Promise((resolve) => setTimeout(resolve, 800));
-    generateHotTopicRecommendations({
-      maxRecommendations: 6,
-    });
-    setIsGeneratingTopics(false);
+    try {
+      await new Promise((resolve) => setTimeout(resolve, 800));
+      generateHotTopicRecommendations({
+        maxRecommendations: 6,
+      });
+    } catch (err) {
+      console.error('热点借势推荐生成失败:', err);
+    } finally {
+      setIsGeneratingTopics(false);
+    }
   };
 
   const handleRefreshHotTopics = async () => {
@@ -325,7 +343,10 @@ export default function StrategyPage() {
       <div className="min-h-screen bg-background-50 flex items-center justify-center">
         <div className="text-center">
           <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary-500 mx-auto mb-4" />
-          <p className="text-background-500">加载中...</p>
+          <p className="text-background-500 mb-4">加载中...</p>
+          <Button variant="outline" onClick={() => navigate('/', { replace: true })}>
+            返回首页
+          </Button>
         </div>
       </div>
     );
@@ -524,6 +545,14 @@ export default function StrategyPage() {
                               </span>
                             ))}
                           </div>
+                        </div>
+                      )}
+                      {generationError && (
+                        <div className="mt-4 p-4 bg-red-50 rounded-xl">
+                          <p className="text-sm text-red-700">{generationError}</p>
+                          <Button variant="outline" size="sm" className="mt-2" onClick={handleGenerate}>
+                            重试
+                          </Button>
                         </div>
                       )}
                     </div>

@@ -2,7 +2,9 @@ import { cn } from '@/lib/utils';
 import { AnimatePresence, motion } from 'framer-motion';
 import {
   createContext,
+  useCallback,
   useContext,
+  useMemo,
   useRef,
   useState,
   type ReactNode,
@@ -40,37 +42,29 @@ export function Tabs({
   className,
 }: TabsProps) {
   const [internalValue, setInternalValue] = useState(defaultValue);
-  const [tabRefs, setTabRefs] = useState<Map<string, HTMLButtonElement | null>>(
-    new Map()
-  );
+  const tabRefsMap = useRef<Map<string, HTMLButtonElement | null>>(new Map());
 
   const activeTab = value ?? internalValue;
 
-  const setActiveTab = (newValue: string) => {
+  const setActiveTab = useCallback((newValue: string) => {
     if (value === undefined) {
       setInternalValue(newValue);
     }
     onValueChange?.(newValue);
-  };
+  }, [value, onValueChange]);
 
-  const registerTab = (id: string, ref: HTMLButtonElement | null) => {
-    setTabRefs((prev) => {
-      const next = new Map(prev);
-      next.set(id, ref);
-      return next;
-    });
-  };
+  const registerTab = useCallback((id: string, ref: HTMLButtonElement | null) => {
+    tabRefsMap.current.set(id, ref);
+  }, []);
 
-  const activeTabRef = tabRefs.get(activeTab);
-  const indicatorStyle = activeTabRef
-    ? {
-        left: activeTabRef.offsetLeft,
-        width: activeTabRef.offsetWidth,
-      }
-    : undefined;
+  const contextValue = useMemo(() => ({
+    activeTab,
+    setActiveTab,
+    registerTab,
+  }), [activeTab, setActiveTab, registerTab]);
 
   return (
-    <TabsContext.Provider value={{ activeTab, setActiveTab, registerTab }}>
+    <TabsContext.Provider value={contextValue}>
       <div className={cn('w-full', className)}>{children}</div>
     </TabsContext.Provider>
   );
@@ -82,26 +76,21 @@ export interface TabsListProps {
 }
 
 export function TabsList({ children, className }: TabsListProps) {
-  const { activeTab } = useTabsContext();
+  const { activeTab, setActiveTab, registerTab: parentRegisterTab } = useTabsContext();
   const listRef = useRef<HTMLDivElement>(null);
+  const localTabRefs = useRef<Map<string, HTMLButtonElement | null>>(new Map());
   const [indicatorStyle, setIndicatorStyle] = useState<{
     left: number;
     width: number;
   } | null>(null);
-  const [tabRefs, setTabRefs] = useState<Map<string, HTMLButtonElement | null>>(
-    new Map()
-  );
 
-  const registerTab = (id: string, ref: HTMLButtonElement | null) => {
-    setTabRefs((prev) => {
-      const next = new Map(prev);
-      next.set(id, ref);
-      return next;
-    });
-  };
+  const registerTab = useCallback((id: string, ref: HTMLButtonElement | null) => {
+    localTabRefs.current.set(id, ref);
+    parentRegisterTab(id, ref);
+  }, [parentRegisterTab]);
 
-  const updateIndicator = () => {
-    const activeRef = tabRefs.get(activeTab);
+  const updateIndicator = useCallback(() => {
+    const activeRef = localTabRefs.current.get(activeTab);
     const listEl = listRef.current;
     if (activeRef && listEl) {
       setIndicatorStyle({
@@ -109,18 +98,16 @@ export function TabsList({ children, className }: TabsListProps) {
         width: activeRef.offsetWidth,
       });
     }
-  };
+  }, [activeTab]);
 
-  const context = useTabsContext();
-  const originalRegisterTab = context.registerTab;
-
-  const enhancedRegisterTab = (id: string, ref: HTMLButtonElement | null) => {
-    originalRegisterTab(id, ref);
-    registerTab(id, ref);
-  };
+  const contextValue = useMemo(() => ({
+    activeTab,
+    setActiveTab,
+    registerTab,
+  }), [activeTab, setActiveTab, registerTab]);
 
   return (
-    <TabsContext.Provider value={{ ...context, registerTab: enhancedRegisterTab }}>
+    <TabsContext.Provider value={contextValue}>
       <div
         ref={listRef}
         className={cn(
@@ -164,11 +151,12 @@ export function TabsTrigger({
   const { activeTab, setActiveTab, registerTab } = useTabsContext();
   const isActive = activeTab === value;
   const triggerRef = useRef<HTMLButtonElement>(null);
+  const registeredRef = useRef(false);
 
-  const handleRef = (el: HTMLButtonElement | null) => {
+  const handleRef = useCallback((el: HTMLButtonElement | null) => {
     triggerRef.current = el;
     registerTab(value, el);
-  };
+  }, [value, registerTab]);
 
   return (
     <button
