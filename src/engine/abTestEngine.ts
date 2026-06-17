@@ -457,5 +457,56 @@ export function generateABTestPlan(
   }
 }
 
+export interface BatchABTestGenerationOptions extends ABTestGenerationOptions {
+  materialTypes?: string[]
+  maxPlans?: number
+}
+
+export function generateMultipleABTestPlans(
+  brandInfo: BrandInfo,
+  targetAudience: TargetAudience,
+  strategy: Strategy,
+  options?: BatchABTestGenerationOptions
+): ABTestPlan[] {
+  const { materialTypes: selectedMaterialTypes, maxPlans = 3, ...restOptions } = options || {}
+
+  const targetTypes = selectedMaterialTypes && selectedMaterialTypes.length > 0
+    ? materialTypes.filter((m) => selectedMaterialTypes.includes(m.type))
+    : materialTypes.slice(0, maxPlans)
+
+  const plans: ABTestPlan[] = []
+
+  for (let i = 0; i < Math.min(targetTypes.length, maxPlans); i++) {
+    const material = targetTypes[i]
+    const variableOverrides = getDefaultVariablesForMaterial(material.type)
+
+    const plan = generateABTestPlan(brandInfo, targetAudience, strategy, {
+      ...restOptions,
+      materialType: material.type,
+      includeVariables: variableOverrides,
+    })
+    plans.push(plan)
+  }
+
+  return plans
+}
+
+function getDefaultVariablesForMaterial(materialType: string): ABTestVariableType[] {
+  switch (materialType) {
+    case 'social-media-ad':
+      return ['title', 'heroImage', 'ctaButton']
+    case 'display-ad':
+      return ['title', 'heroImage', 'ctaButton']
+    case 'landing-page':
+      return ['title', 'heroImage', 'description', 'ctaButton']
+    case 'email-marketing':
+      return ['title', 'description', 'ctaButton']
+    case 'app-store':
+      return ['title', 'description', 'heroImage']
+    default:
+      return ['title', 'heroImage', 'ctaButton']
+  }
+}
+
 export { materialTypes, heroImageConcepts, ctaButtonVariants }
 export { calculateSampleSize }

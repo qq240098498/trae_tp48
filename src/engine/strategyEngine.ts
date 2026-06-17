@@ -491,14 +491,14 @@ function generateStrategyVersions(
 ): Array<{ id: string; name: string; coreIdea: string }> {
   const versions: Array<{ id: string; name: string; coreIdea: string }> = []
   const allFrameworks = randomPickMultiple(creativeFrameworks, 3)
+  const versionNames = ['情感版', '功能版', '故事版', '潮流版', '品质版', '简约版']
 
   allFrameworks.forEach((fw, index) => {
-    const versionNames = ['情感版', '功能版', '故事版', '潮流版', '品质版', '简约版']
     const idea = generateCoreIdea(fw, brandKeywords, audienceKeywords)
 
     versions.push({
       id: `v${index + 1}`,
-      name: fw.name + '方向',
+      name: versionNames[index % versionNames.length] + ' - ' + fw.name + '方向',
       coreIdea: idea
     })
   })

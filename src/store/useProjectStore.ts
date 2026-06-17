@@ -12,7 +12,7 @@ import type {
 } from '@/types'
 import { savePlan, getPlan, deletePlan, getPlanList } from '@/utils/storage'
 import { generateId, deepClone, formatDateTime } from '@/utils/helpers'
-import { generateABTestPlan, type ABTestGenerationOptions } from '@/engine/abTestEngine'
+import { generateABTestPlan, generateMultipleABTestPlans, type ABTestGenerationOptions, type BatchABTestGenerationOptions } from '@/engine/abTestEngine'
 
 interface ProjectStore {
   currentPlan: MarketingPlan | null
@@ -36,6 +36,7 @@ interface ProjectStore {
   updateExecutionPlan: (executionPlan: Partial<ExecutionPlan>) => void
 
   generateABTestPlan: (options?: ABTestGenerationOptions) => ABTestPlan | null
+  generateMultipleABTestPlans: (options?: BatchABTestGenerationOptions) => ABTestPlan[]
   addABTestPlan: (abTestPlan: ABTestPlan) => void
   updateABTestPlan: (id: string, updates: Partial<ABTestPlan>) => void
   deleteABTestPlan: (id: string) => void
@@ -385,6 +386,28 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     set({ currentPlan: updatedPlan })
 
     return abTestPlan
+  },
+
+  generateMultipleABTestPlans: (options?: BatchABTestGenerationOptions): ABTestPlan[] => {
+    const { currentPlan } = get()
+    if (!currentPlan) return []
+
+    const { brandInfo, targetAudience, strategy } = currentPlan
+
+    if (!brandInfo.brandName || !strategy.coreIdea) {
+      return []
+    }
+
+    const abTestPlans = generateMultipleABTestPlans(brandInfo, targetAudience, strategy, options)
+
+    const updatedPlan = {
+      ...currentPlan,
+      abTestPlans: [...(currentPlan.abTestPlans || []), ...abTestPlans],
+    }
+
+    set({ currentPlan: updatedPlan })
+
+    return abTestPlans
   },
 
   addABTestPlan: (abTestPlan: ABTestPlan) => {

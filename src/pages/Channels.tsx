@@ -14,14 +14,11 @@ import {
   PieChart,
   Target,
   MessageCircle,
-  Building2,
-  Mic2,
   PartyPopper,
   Radio,
   AlertTriangle,
   Clock,
   TrendingUp,
-  Heart,
   Share2,
   Camera,
   Video,
@@ -36,8 +33,11 @@ import {
   Newspaper,
   Tv2,
   BookOpen,
+  Lightbulb,
+  Handshake,
+  Filter,
 } from 'lucide-react';
-import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer, Legend } from 'recharts';
+import { PieChart as RechartsPie, Pie, Cell, BarChart, Bar, XAxis, YAxis, Tooltip, ResponsiveContainer } from 'recharts';
 import { useProjectStore } from '@/store/useProjectStore';
 import { generateChannelMatrix } from '@/engine/channelPlanner';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
@@ -45,7 +45,6 @@ import Button from '@/components/ui/Button';
 import Tag from '@/components/ui/Tag';
 import StepIndicator from '@/components/ui/StepIndicator';
 import { cn } from '@/lib/utils';
-import type { ChannelMatrix } from '@/types';
 
 const steps = [
   { id: 1, label: '品牌信息' },
@@ -231,10 +230,13 @@ export default function ChannelsPage() {
     }));
   }, []);
 
-  if (!channelMatrix) {
+  if (!channelMatrix || isGenerating) {
     return (
       <div className="flex items-center justify-center min-h-[400px]">
-        <div className="text-background-500">加载中...</div>
+        <div className="flex flex-col items-center gap-3">
+          <div className="animate-spin rounded-full h-10 w-10 border-b-2 border-primary-500" />
+          <div className="text-background-500">{isGenerating ? '正在生成渠道矩阵...' : '加载中...'}</div>
+        </div>
       </div>
     );
   }
@@ -1005,68 +1007,4 @@ export default function ChannelsPage() {
   );
 }
 
-function Lightbulb(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="M15 14c.2-1 .7-1.7 1.5-2.5 1-.9 1.5-2.2 1.5-3.5A6 6 0 0 0 6 8c0 1 .2 2.2 1.5 3.5.7.7 1.3 1.5 1.5 2.5" />
-      <path d="M9 18h6" />
-      <path d="M10 22h4" />
-    </svg>
-  );
-}
 
-function Handshake(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <path d="m11 17 2 2a1 1 0 1 0 3-3" />
-      <path d="m14 14 2.5 2.5a1 1 0 1 0 3-3l-3.88-3.88a3 3 0 0 0-4.24 0l-.88.88" />
-      <path d="m9.5 11.5 5-5a1 1 0 1 1 3 3l-1.5 1.5" />
-      <path d="m19 10-1.5 1.5" />
-      <path d="M12 12 9.5 9.5a1 1 0 1 0-3 3l1.5 1.5" />
-      <path d="M5 14l1.5-1.5" />
-      <path d="m11 8 2.5 2.5" />
-      <path d="m10 16-3.5-3.5" />
-    </svg>
-  );
-}
-
-function Filter(props: any) {
-  return (
-    <svg
-      {...props}
-      xmlns="http://www.w3.org/2000/svg"
-      width="24"
-      height="24"
-      viewBox="0 0 24 24"
-      fill="none"
-      stroke="currentColor"
-      strokeWidth="2"
-      strokeLinecap="round"
-      strokeLinejoin="round"
-    >
-      <polygon points="22 3 2 3 10 12.46 10 19 14 21 14 12.46 22 3" />
-    </svg>
-  );
-}
