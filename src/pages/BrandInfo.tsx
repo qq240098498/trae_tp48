@@ -83,6 +83,7 @@ export default function BrandInfoPage() {
   const [industryDropdownOpen, setIndustryDropdownOpen] = useState(false);
   const [customValue, setCustomValue] = useState('');
   const [activeCategory, setActiveCategory] = useState<string>(coreValueCategories[0]);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (id === 'new') {
@@ -102,7 +103,23 @@ export default function BrandInfoPage() {
     saveCurrentPlan();
   };
 
+  const validateBrandInfo = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!brandInfo?.brandName?.trim()) {
+      errors.brandName = '请输入品牌名称';
+    }
+    if (!brandInfo?.industry) {
+      errors.industry = '请选择所属行业';
+    }
+    if (!brandInfo?.brandTone) {
+      errors.brandTone = '请选择品牌调性';
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
   const handleNext = () => {
+    if (!validateBrandInfo()) return;
     saveCurrentPlan();
     const planId = currentPlan?.project.id || 'new';
     navigate(`/project/${planId}/audience`);
@@ -110,6 +127,7 @@ export default function BrandInfoPage() {
 
   const handleToneSelect = (toneId: string) => {
     handleFieldChange('brandTone', toneId);
+    if (validationErrors.brandTone) setValidationErrors((prev) => { const next = { ...prev }; delete next.brandTone; return next; });
   };
 
   const handleValueToggle = (valueId: string) => {
@@ -206,15 +224,22 @@ export default function BrandInfoPage() {
                   <div className="md:col-span-1">
                     <Input
                       label="品牌名称"
+                      required
                       placeholder="请输入品牌名称"
                       size="lg"
                       value={brandInfo.brandName}
-                      onChange={(e) => handleFieldChange('brandName', e.target.value)}
+                      onChange={(e) => {
+                        handleFieldChange('brandName', e.target.value);
+                        if (validationErrors.brandName) setValidationErrors((prev) => { const next = { ...prev }; delete next.brandName; return next; });
+                      }}
+                      error={validationErrors.brandName}
                     />
                   </div>
 
                   <div className="md:col-span-1">
-                    <label className="block mb-1.5 text-sm font-medium text-background-700">所属行业</label>
+                    <label className="block mb-1.5 text-sm font-medium text-background-700">
+                      所属行业<span className="text-red-500 ml-0.5">*</span>
+                    </label>
                     <div className="relative">
                       <button
                         type="button"
@@ -246,6 +271,7 @@ export default function BrandInfoPage() {
                                 onClick={() => {
                                   handleFieldChange('industry', industry.name);
                                   setIndustryDropdownOpen(false);
+                                  if (validationErrors.industry) setValidationErrors((prev) => { const next = { ...prev }; delete next.industry; return next; });
                                 }}
                                 className={cn(
                                   'w-full px-4 py-3 text-left hover:bg-primary-50 transition-colors duration-150 flex items-center justify-between',
@@ -262,6 +288,9 @@ export default function BrandInfoPage() {
                         )}
                       </AnimatePresence>
                     </div>
+                    {validationErrors.industry && (
+                      <p className="mt-1.5 text-sm text-red-500">{validationErrors.industry}</p>
+                    )}
                     {selectedIndustry && (
                       <motion.div
                         initial={{ opacity: 0, height: 0 }}
@@ -305,13 +334,16 @@ export default function BrandInfoPage() {
                       <Palette className="w-5 h-5 text-accent-600" />
                     </div>
                     <div>
-                      <h3 className="text-lg font-semibold text-background-900">品牌调性</h3>
+                      <h3 className="text-lg font-semibold text-background-900">品牌调性<span className="text-red-500 ml-0.5">*</span></h3>
                       <p className="text-sm text-background-500 mt-0.5">选择最符合您品牌气质的调性风格</p>
                     </div>
                   </div>
                 }
               />
               <CardBody>
+                {validationErrors.brandTone && (
+                  <p className="mb-4 text-sm text-red-500">{validationErrors.brandTone}</p>
+                )}
                 <div className="grid grid-cols-2 sm:grid-cols-3 lg:grid-cols-4 gap-4">
                   {brandTones.map((tone, index) => (
                     <motion.div

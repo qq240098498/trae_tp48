@@ -89,13 +89,26 @@ export default function StrategyPage() {
 
   const hasStrategy = strategy?.coreIdea && strategy.coreIdea.length > 0;
 
+  const missingInfo = useMemo(() => {
+    const missing: string[] = [];
+    if (!brandInfo?.brandName?.trim()) missing.push('品牌名称');
+    if (!brandInfo?.industry) missing.push('所属行业');
+    if (!brandInfo?.brandTone) missing.push('品牌调性');
+    if (!targetAudience?.demographics?.ageRange) missing.push('年龄段');
+    if (!targetAudience?.demographics?.gender) missing.push('性别分布');
+    if (!targetAudience?.interests || targetAudience.interests.length === 0) missing.push('兴趣爱好');
+    return missing;
+  }, [brandInfo, targetAudience]);
+
+  const canGenerate = missingInfo.length === 0;
+
   const currentFramework = useMemo(() => {
     if (!strategy?.strategyFramework) return null;
     return creativeFrameworks.find((fw) => fw.name === strategy.strategyFramework);
   }, [strategy?.strategyFramework]);
 
   const handleGenerate = async () => {
-    if (!brandInfo || !targetAudience) return;
+    if (!brandInfo || !targetAudience || !canGenerate) return;
 
     setIsGenerating(true);
     setGenerationStep(0);
@@ -392,14 +405,23 @@ export default function StrategyPage() {
                         size="lg"
                         leftIcon={<Wand2 className="w-5 h-5" />}
                         onClick={handleGenerate}
-                        disabled={!brandInfo?.brandName || !targetAudience?.name}
+                        disabled={!canGenerate}
                       >
                         生成策略
                       </Button>
-                      {(!brandInfo?.brandName || !targetAudience?.name) && (
-                        <p className="mt-3 text-sm text-amber-600">
-                          请先完成品牌信息和人群画像的填写
-                        </p>
+                      {!canGenerate && (
+                        <div className="mt-3">
+                          <p className="text-sm text-amber-600 mb-1.5">
+                            请先完成以下必填项：
+                          </p>
+                          <div className="flex flex-wrap gap-1.5 justify-center">
+                            {missingInfo.map((item) => (
+                              <span key={item} className="inline-flex items-center px-2.5 py-0.5 rounded-md text-xs font-medium bg-amber-100 text-amber-700">
+                                {item}
+                              </span>
+                            ))}
+                          </div>
+                        </div>
                       )}
                     </div>
                   )}

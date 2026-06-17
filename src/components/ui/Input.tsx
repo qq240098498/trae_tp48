@@ -5,6 +5,7 @@ type InputSize = 'sm' | 'md' | 'lg';
 
 interface BaseInputProps {
   label?: string;
+  required?: boolean;
   error?: string;
   size?: InputSize;
   prefixIcon?: ReactNode;
@@ -30,6 +31,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, CombinedInputPr
   (props, ref) => {
     const {
       label,
+      required,
       error,
       size = 'md',
       prefixIcon,
@@ -102,6 +104,7 @@ const Input = forwardRef<HTMLInputElement | HTMLTextAreaElement, CombinedInputPr
         {label && (
           <label className="block mb-1.5 text-sm font-medium text-background-700">
             {label}
+            {required && <span className="text-red-500 ml-0.5">*</span>}
           </label>
         )}
         <div className="relative">

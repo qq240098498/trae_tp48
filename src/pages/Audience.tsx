@@ -97,6 +97,7 @@ export default function Audience() {
   const { currentPlan, loadPlan, updateTargetAudience, saveCurrentPlan } = useProjectStore();
   const [interestSearch, setInterestSearch] = useState('');
   const [activeInterestCategory, setActiveInterestCategory] = useState<string | null>(null);
+  const [validationErrors, setValidationErrors] = useState<Record<string, string>>({});
 
   useEffect(() => {
     if (id && (!currentPlan || currentPlan.project.id !== id)) {
@@ -121,6 +122,9 @@ export default function Audience() {
       ? interests.filter((i) => i !== interest)
       : [...interests, interest];
     updateTargetAudience({ interests: newInterests });
+    if (validationErrors.interests && newInterests.length > 0) {
+      setValidationErrors((prev) => { const next = { ...prev }; delete next.interests; return next; });
+    }
   };
 
   const toggleBehavior = (behavior: string) => {
@@ -220,12 +224,42 @@ export default function Audience() {
     saveCurrentPlan();
   };
 
+  const validateAudience = (): boolean => {
+    const errors: Record<string, string> = {};
+    if (!audience?.demographics?.ageRange) {
+      errors.ageRange = '请选择年龄段';
+    }
+    if (!audience?.demographics?.gender) {
+      errors.gender = '请选择性别分布';
+    }
+    if (!audience?.interests || audience.interests.length === 0) {
+      errors.interests = '请至少选择一个兴趣爱好标签';
+    }
+    setValidationErrors(errors);
+    return Object.keys(errors).length === 0;
+  };
+
+  const generateAudienceName = () => {
+    if (!audience) return;
+    const parts: string[] = [];
+    const ageData = ageRanges.find((a) => a.id === audience.demographics?.ageRange);
+    if (ageData) parts.push(ageData.name);
+    const cityData = cityTiers.find((c) => c.id === audience.demographics?.location);
+    if (cityData) parts.push(cityData.name);
+    const occData = occupations.find((o) => o.id === audience.demographics?.occupation);
+    if (occData) parts.push(occData.name);
+    const name = parts.length > 0 ? parts.join('·') : '目标人群';
+    updateTargetAudience({ name });
+  };
+
   const handlePrev = () => {
     saveCurrentPlan();
     navigate(`/project/${id}/brand`);
   };
 
   const handleNext = () => {
+    if (!validateAudience()) return;
+    generateAudienceName();
     saveCurrentPlan();
     navigate(`/project/${id}/strategy`);
   };
@@ -307,7 +341,7 @@ export default function Audience() {
                 <CardBody>
                   <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
                     <div>
-                      <label className="block mb-2 text-sm font-medium text-background-700">年龄段</label>
+                      <label className="block mb-2 text-sm font-medium text-background-700">年龄段<span className="text-red-500 ml-0.5">*</span></label>
                       <div className="flex flex-wrap gap-2">
                         {ageRanges.map((age) => (
                           <Tag
@@ -315,16 +349,20 @@ export default function Audience() {
                             color="primary"
                             size="sm"
                             selected={audience?.demographics?.ageRange === age.id}
-                            onClick={() => handleDemographicChange('ageRange', age.id)}
+                            onClick={() => {
+                              handleDemographicChange('ageRange', age.id);
+                              if (validationErrors.ageRange) setValidationErrors((prev) => { const next = { ...prev }; delete next.ageRange; return next; });
+                            }}
                           >
                             {age.name}
                           </Tag>
                         ))}
                       </div>
+                      {validationErrors.ageRange && <p className="mt-1.5 text-sm text-red-500">{validationErrors.ageRange}</p>}
                     </div>
 
                     <div>
-                      <label className="block mb-2 text-sm font-medium text-background-700">性别分布</label>
+                      <label className="block mb-2 text-sm font-medium text-background-700">性别分布<span className="text-red-500 ml-0.5">*</span></label>
                       <div className="flex gap-2">
                         {genders.map((gender) => (
                           <Tag
@@ -332,12 +370,16 @@ export default function Audience() {
                             color="primary"
                             size="md"
                             selected={audience?.demographics?.gender === gender.id}
-                            onClick={() => handleDemographicChange('gender', gender.id)}
+                            onClick={() => {
+                              handleDemographicChange('gender', gender.id);
+                              if (validationErrors.gender) setValidationErrors((prev) => { const next = { ...prev }; delete next.gender; return next; });
+                            }}
                           >
                             {gender.name}
                           </Tag>
                         ))}
                       </div>
+                      {validationErrors.gender && <p className="mt-1.5 text-sm text-red-500">{validationErrors.gender}</p>}
                     </div>
 
                     <div>
@@ -469,7 +511,7 @@ export default function Audience() {
                   title={
                     <div className="flex items-center gap-2">
                       <Heart className="w-5 h-5 text-accent-500" />
-                      <span>兴趣爱好标签</span>
+                      <span>兴趣爱好标签<span className="text-red-500 ml-0.5">*</span></span>
                     </div>
                   }
                   subtitle="选择目标人群的兴趣爱好领域"
@@ -480,6 +522,9 @@ export default function Audience() {
                   }
                 />
                 <CardBody>
+                  {validationErrors.interests && (
+                    <p className="mb-4 text-sm text-red-500">{validationErrors.interests}</p>
+                  )}
                   <div className="mb-4">
                     <Input
                       placeholder="搜索兴趣标签..."
