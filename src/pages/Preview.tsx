@@ -42,6 +42,12 @@ import {
   Clock as ClockIcon,
   ChevronDown,
   Sparkles,
+  Flame,
+  Video,
+  FileText as FileTextIcon,
+  Image,
+  Radio,
+  Vote,
 } from 'lucide-react';
 import { PieChart, Pie, Cell, ResponsiveContainer, BarChart, Bar, XAxis, YAxis, Tooltip, Legend } from 'recharts';
 import { useProjectStore } from '@/store/useProjectStore';
@@ -51,7 +57,7 @@ import Tag from '@/components/ui/Tag';
 import Badge from '@/components/ui/Badge';
 import Card, { CardHeader, CardBody } from '@/components/ui/Card';
 import { cn } from '@/lib/utils';
-import type { MarketingPlan, KPIMetric, RiskItem, ResourceItem, TimelinePhase } from '@/types';
+import type { MarketingPlan, KPIMetric, RiskItem, ResourceItem, TimelinePhase, HotTopicRecommendation } from '@/types';
 
 interface Section {
   id: string;
@@ -68,6 +74,7 @@ const sections: Section[] = [
   { id: 'timeline', title: '执行排期', icon: <CalendarIcon className="w-4 h-4" /> },
   { id: 'budget', title: '资源预算', icon: <DollarSign className="w-4 h-4" /> },
   { id: 'risks', title: '风险预案', icon: <AlertTriangle className="w-4 h-4" /> },
+  { id: 'hotTopics', title: '热点借势推荐', icon: <Flame className="w-4 h-4" /> },
 ];
 
 const CHART_COLORS = ['#1E3A5F', '#FF6B35', '#2EC4B6', '#8B5CF6', '#F59E0B', '#EF4444'];
@@ -1116,6 +1123,104 @@ export default function Preview() {
                 </CardBody>
               </Card>
             </motion.section>
+
+            {currentPlan.hotTopicRecommendations && (
+              <motion.section
+                ref={(el) => { sectionRefs.current['hotTopics'] = el; }}
+                id="hotTopics"
+                initial={{ opacity: 0, y: 20 }}
+                animate={{ opacity: 1, y: 0 }}
+                transition={{ duration: 0.5, delay: 0.8 }}
+              >
+                <SectionHeader
+                  icon={<Flame className="w-5 h-5" />}
+                  title="热点借势推荐"
+                  subtitle="Hot Topic Recommendations"
+                  color="warning"
+                />
+                <Card>
+                  <CardBody className="space-y-6">
+                    <div className="grid grid-cols-1 md:grid-cols-4 gap-4">
+                      <div className="p-4 rounded-xl bg-orange-50">
+                        <p className="text-xs font-medium text-orange-600 mb-1">扫描话题</p>
+                        <p className="text-2xl font-bold text-background-900">
+                          {currentPlan.hotTopicRecommendations.totalTopicsScanned}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-red-50">
+                        <p className="text-xs font-medium text-red-600 mb-1">推荐数量</p>
+                        <p className="text-2xl font-bold text-background-900">
+                          {currentPlan.hotTopicRecommendations.recommendations.length}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-amber-50">
+                        <p className="text-xs font-medium text-amber-600 mb-1">热门分类</p>
+                        <p className="text-sm font-bold text-background-900 truncate">
+                          {currentPlan.hotTopicRecommendations.trendingCategories.slice(0, 2).join('、') || '-'}
+                        </p>
+                      </div>
+                      <div className="p-4 rounded-xl bg-primary-50">
+                        <p className="text-xs font-medium text-primary-600 mb-1">生成时间</p>
+                        <p className="text-sm font-bold text-background-900">
+                          {formatDateTime(currentPlan.hotTopicRecommendations.generatedAt)}
+                        </p>
+                      </div>
+                    </div>
+
+                    {currentPlan.hotTopicRecommendations.marketInsights.length > 0 && (
+                      <div className="pt-4 border-t border-background-100">
+                        <h4 className="text-sm font-semibold text-background-900 mb-3">市场洞察</h4>
+                        <div className="space-y-2">
+                          {currentPlan.hotTopicRecommendations.marketInsights.map((insight, idx) => (
+                            <div key={idx} className="flex items-start gap-2 p-3 bg-gradient-to-r from-orange-50 to-primary-50 rounded-lg">
+                              <BarChart3 className="w-4 h-4 text-orange-500 flex-shrink-0 mt-0.5" />
+                              <p className="text-sm text-background-700">{insight}</p>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+
+                    <div className="pt-4 border-t border-background-100">
+                      <h4 className="text-sm font-semibold text-background-900 mb-4">推荐话题详情</h4>
+                      {currentPlan.hotTopicRecommendations.recommendations.length > 0 ? (
+                        <div className="space-y-4">
+                          {currentPlan.hotTopicRecommendations.recommendations.map((rec) => (
+                            <HotTopicPreviewCard key={rec.id} recommendation={rec} />
+                          ))}
+                        </div>
+                      ) : (
+                        <p className="text-background-400 text-center py-8">暂无推荐话题</p>
+                      )}
+                    </div>
+
+                    <div className="pt-4 border-t border-background-100">
+                      <h4 className="text-sm font-semibold text-background-900 mb-3">借势营销通用准则</h4>
+                      <div className="p-4 bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl">
+                        <ul className="space-y-2 text-sm text-background-700">
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                            <span>快速响应：热点黄金窗口期通常为话题爆发后24小时内，需提前准备内容模板</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                            <span>品牌契合：内容需贴合品牌调性，避免硬蹭热点导致品牌形象受损</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                            <span>风险把控：避开政治敏感、社会负面、争议性话题，确保品牌安全</span>
+                          </li>
+                          <li className="flex items-start gap-2">
+                            <CheckCircle2 className="w-4 h-4 text-primary-500 flex-shrink-0 mt-0.5" />
+                            <span>多平台适配：同一话题根据不同平台特性调整内容形式和话术</span>
+                          </li>
+                        </ul>
+                      </div>
+                    </div>
+                  </CardBody>
+                </Card>
+              </motion.section>
+            )}
           </div>
         </main>
       </div>
@@ -1417,6 +1522,331 @@ function RiskCard({ risk, index }: { risk: RiskItem; index: number }) {
       <div className="pl-11">
         <p className="text-xs font-medium text-background-500 mb-1">应对措施</p>
         <p className="text-sm text-background-700">{risk.response}</p>
+      </div>
+    </div>
+  );
+}
+
+function HotTopicPreviewCard({ recommendation }: { recommendation: HotTopicRecommendation }) {
+  const { topic, priorityLevel, leverageAngles, contentSuggestions, heatCycle, brandRelevanceScore, audienceOverlapScore, overallFitScore, brandValueAlignment, targetAudienceMatch, cautions, callToActionSuggestions } = recommendation;
+
+  const priorityConfig: Record<string, { bg: string; text: string; label: string; border: string }> = {
+    's-tier': { bg: 'bg-red-500', text: 'text-red-700', label: 'S级', border: 'border-l-red-500' },
+    'a-tier': { bg: 'bg-orange-500', text: 'text-orange-700', label: 'A级', border: 'border-l-orange-500' },
+    'b-tier': { bg: 'bg-amber-500', text: 'text-amber-700', label: 'B级', border: 'border-l-amber-500' },
+    'c-tier': { bg: 'bg-gray-500', text: 'text-gray-700', label: 'C级', border: 'border-l-gray-500' },
+  };
+
+  const platformConfig: Record<string, { bg: string; text: string; label: string }> = {
+    weibo: { bg: 'bg-red-100', text: 'text-red-600', label: '微博热搜' },
+    douyin: { bg: 'bg-gray-900', text: 'text-white', label: '抖音挑战榜' },
+    xiaohongshu: { bg: 'bg-red-100', text: 'text-red-500', label: '小红书趋势' },
+    zhihu: { bg: 'bg-blue-100', text: 'text-blue-600', label: '知乎热榜' },
+    bilibili: { bg: 'bg-pink-100', text: 'text-pink-500', label: 'B站热门' },
+  };
+
+  const heatLevelConfig: Record<string, { bg: string; text: string; label: string }> = {
+    explosive: { bg: 'bg-red-100', text: 'text-red-700', label: '爆' },
+    boiling: { bg: 'bg-orange-100', text: 'text-orange-700', label: '沸' },
+    hot: { bg: 'bg-amber-100', text: 'text-amber-700', label: '热' },
+    warm: { bg: 'bg-yellow-100', text: 'text-yellow-700', label: '暖' },
+    rising: { bg: 'bg-green-100', text: 'text-green-700', label: '新' },
+  };
+
+  const phaseConfig: Record<string, { bg: string; text: string; label: string }> = {
+    rising: { bg: 'bg-green-100', text: 'text-green-700', label: '上升期' },
+    peak: { bg: 'bg-red-100', text: 'text-red-700', label: '爆发期' },
+    declining: { bg: 'bg-orange-100', text: 'text-orange-700', label: '衰退期' },
+    cooling: { bg: 'bg-gray-100', text: 'text-gray-700', label: '冷却期' },
+  };
+
+  const urgencyConfig: Record<string, { bg: string; text: string; label: string }> = {
+    critical: { bg: 'bg-red-100', text: 'text-red-700', label: '极紧急' },
+    high: { bg: 'bg-orange-100', text: 'text-orange-700', label: '紧急' },
+    medium: { bg: 'bg-amber-100', text: 'text-amber-700', label: '适中' },
+    low: { bg: 'bg-green-100', text: 'text-green-700', label: '宽松' },
+  };
+
+  const fitLevelConfig: Record<string, { text: string; percent: number }> = {
+    perfect: { text: '完美契合', percent: 95 },
+    high: { text: '高度契合', percent: 80 },
+    medium: { text: '中度契合', percent: 60 },
+    low: { text: '低度契合', percent: 40 },
+  };
+
+  const difficultyConfig: Record<string, string> = {
+    easy: '简单',
+    medium: '中等',
+    hard: '困难',
+  };
+
+  const formatTypeIcon: Record<string, React.ReactNode> = {
+    shortVideo: <Video className="w-4 h-4" />,
+    longVideo: <Video className="w-4 h-4" />,
+    longArticle: <FileTextIcon className="w-4 h-4" />,
+    shortPost: <MessageSquare className="w-4 h-4" />,
+    imageSet: <Image className="w-4 h-4" />,
+    liveStream: <Radio className="w-4 h-4" />,
+    interactive: <Vote className="w-4 h-4" />,
+  };
+
+  const priority = priorityConfig[priorityLevel];
+  const platform = platformConfig[topic.platform];
+  const heatLevel = heatLevelConfig[topic.heatLevel];
+  const phase = phaseConfig[heatCycle.currentPhase];
+  const urgency = urgencyConfig[heatCycle.urgencyLevel];
+
+  return (
+    <div className={`bg-white rounded-2xl border border-background-200 shadow-sm border-l-4 ${priority.border} overflow-hidden`}>
+      <div className="p-5">
+        <div className="flex items-start justify-between gap-4 mb-4">
+          <div className="flex-1 min-w-0">
+            <div className="flex flex-wrap items-center gap-2 mb-2">
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-bold ${priority.bg} text-white`}>
+                {priority.label}
+              </span>
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${platform.bg} ${platform.text}`}>
+                {platform.label}
+              </span>
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${heatLevel.bg} ${heatLevel.text}`}>
+                {heatLevel.label} · 热度{topic.heatIndex}万
+              </span>
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${phase.bg} ${phase.text}`}>
+                {phase.label}
+              </span>
+              <span className={`px-2.5 py-1 rounded-lg text-xs font-medium ${urgency.bg} ${urgency.text}`}>
+                {urgency.label}
+              </span>
+              {topic.platformRank && (
+                <span className="px-2.5 py-1 rounded-lg text-xs font-medium bg-violet-100 text-violet-700">
+                  榜{topic.platformRank}
+                </span>
+              )}
+            </div>
+            <h4 className="font-bold text-lg text-background-900 mb-2">{topic.title}</h4>
+            <p className="text-sm text-background-600 leading-relaxed mb-3">{topic.summary}</p>
+            <div className="flex flex-wrap gap-1.5">
+              {topic.tags.slice(0, 6).map((tag, i) => (
+                <span key={i} className="text-xs px-2 py-0.5 bg-background-100 text-background-600 rounded-full">
+                  #{tag}
+                </span>
+              ))}
+            </div>
+          </div>
+          <div className="flex-shrink-0 grid grid-cols-2 gap-3">
+            <div className="text-center p-2 rounded-xl bg-orange-50">
+              <p className="text-xs text-orange-600 mb-0.5">热度指数</p>
+              <p className="text-lg font-bold text-orange-700">{topic.heatIndex}万</p>
+            </div>
+            <div className="text-center p-2 rounded-xl bg-primary-50">
+              <p className="text-xs text-primary-600 mb-0.5">综合匹配</p>
+              <p className="text-lg font-bold text-primary-700">{overallFitScore}%</p>
+            </div>
+            <div className="text-center p-2 rounded-xl bg-green-50">
+              <p className="text-xs text-green-600 mb-0.5">品牌安全</p>
+              <p className="text-lg font-bold text-green-700">{topic.brandSafetyScore}分</p>
+            </div>
+            <div className="text-center p-2 rounded-xl bg-violet-50">
+              <p className="text-xs text-violet-600 mb-0.5">黄金窗口</p>
+              <p className="text-lg font-bold text-violet-700">{heatCycle.remainingHours}h</p>
+            </div>
+          </div>
+        </div>
+
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+          <div>
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-background-500">品牌关联度</span>
+              <span className="font-medium text-primary-600">{brandRelevanceScore}%</span>
+            </div>
+            <div className="h-2 bg-background-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-primary-400 to-primary-600 rounded-full" style={{ width: `${brandRelevanceScore}%` }} />
+            </div>
+          </div>
+          <div>
+            <div className="flex justify-between text-xs mb-1.5">
+              <span className="text-background-500">人群重叠度</span>
+              <span className="font-medium text-accent-600">{audienceOverlapScore}%</span>
+            </div>
+            <div className="h-2 bg-background-100 rounded-full overflow-hidden">
+              <div className="h-full bg-gradient-to-r from-accent-400 to-accent-600 rounded-full" style={{ width: `${audienceOverlapScore}%` }} />
+            </div>
+          </div>
+        </div>
+
+        <div className="mb-4 p-3 bg-gradient-to-r from-orange-50 to-violet-50 rounded-xl">
+          <p className="text-xs font-medium text-background-700">
+            <Clock className="w-3.5 h-3.5 inline mr-1.5 text-orange-500" />
+            时间窗口说明：{heatCycle.explanation}
+          </p>
+          <p className="text-xs text-background-500 mt-1">
+            黄金窗口期：{heatCycle.goldenWindowStart} ~ {heatCycle.goldenWindowEnd} · 
+            峰值时间：{heatCycle.peakTime}
+          </p>
+        </div>
+
+        {brandValueAlignment.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-medium text-background-500 mb-2 flex items-center gap-1">
+              <Shield className="w-3 h-3" /> 品牌价值契合
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {brandValueAlignment.map((val, i) => (
+                <span key={i} className="text-xs px-2 py-1 bg-green-100 text-green-700 rounded-md">
+                  {val}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {targetAudienceMatch.length > 0 && (
+          <div className="mb-4">
+            <p className="text-xs font-medium text-background-500 mb-2 flex items-center gap-1">
+              <Users className="w-3 h-3" /> 目标人群匹配
+            </p>
+            <div className="flex flex-wrap gap-1.5">
+              {targetAudienceMatch.map((val, i) => (
+                <span key={i} className="text-xs px-2 py-1 bg-primary-100 text-primary-700 rounded-md">
+                  {val}
+                </span>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {leverageAngles.length > 0 && (
+          <div className="mb-4 pt-4 border-t border-background-100">
+            <h5 className="text-sm font-semibold text-background-900 mb-3 flex items-center gap-2">
+              <Lightbulb className="w-4 h-4 text-amber-500" />
+              切入角度建议
+            </h5>
+            <div className="space-y-3">
+              {leverageAngles.slice(0, 3).map((angle, i) => {
+                const fit = fitLevelConfig[angle.fitLevel];
+                return (
+                  <div key={i} className="p-4 bg-gradient-to-br from-amber-50 to-orange-50 rounded-xl">
+                    <div className="flex items-center justify-between mb-2">
+                      <h6 className="font-semibold text-background-900">{angle.title}</h6>
+                      <div className="flex items-center gap-1.5">
+                        <span className="text-xs px-2 py-0.5 bg-primary-100 text-primary-700 rounded-full">
+                          {fit.text}
+                        </span>
+                        <span className="text-xs px-2 py-0.5 bg-violet-100 text-violet-700 rounded-full">
+                          难度{difficultyConfig[angle.difficulty]}
+                        </span>
+                        <span className={`text-xs px-2 py-0.5 rounded-full ${
+                          angle.riskLevel === 'high' ? 'bg-red-100 text-red-700' :
+                          angle.riskLevel === 'medium' ? 'bg-amber-100 text-amber-700' :
+                          'bg-green-100 text-green-700'
+                        }`}>
+                          {angle.riskLevel === 'high' ? '高风险' : angle.riskLevel === 'medium' ? '中风险' : '低风险'}
+                        </span>
+                      </div>
+                    </div>
+                    <p className="text-sm text-background-600 mb-2">{angle.description}</p>
+                    <div className="p-3 bg-white/70 rounded-lg">
+                      <p className="text-xs text-background-500 mb-1">📝 示例标题</p>
+                      <p className="text-sm font-medium text-background-800">{angle.exampleHook}</p>
+                    </div>
+                    {angle.keyTalkingPoints.length > 0 && (
+                      <div className="mt-3">
+                        <p className="text-xs text-background-500 mb-1.5">传播要点</p>
+                        <div className="flex flex-wrap gap-1.5">
+                          {angle.keyTalkingPoints.map((point, j) => (
+                            <span key={j} className="text-xs px-2 py-1 bg-white/80 text-background-700 rounded-md">
+                              {point}
+                            </span>
+                          ))}
+                        </div>
+                      </div>
+                    )}
+                  </div>
+                );
+              })}
+            </div>
+          </div>
+        )}
+
+        {contentSuggestions.length > 0 && (
+          <div className="mb-4 pt-4 border-t border-background-100">
+            <h5 className="text-sm font-semibold text-background-900 mb-3 flex items-center gap-2">
+              <Video className="w-4 h-4 text-primary-500" />
+              内容形式推荐
+            </h5>
+            <div className="grid grid-cols-1 md:grid-cols-2 gap-3">
+              {contentSuggestions.slice(0, 4).map((suggestion, i) => (
+                <div key={i} className="p-4 bg-gradient-to-br from-primary-50 to-accent-50 rounded-xl">
+                  <div className="flex items-center justify-between mb-2">
+                    <div className="flex items-center gap-2">
+                      <div className="w-8 h-8 rounded-lg bg-white flex items-center justify-center text-primary-600">
+                        {formatTypeIcon[suggestion.formatType]}
+                      </div>
+                      <h6 className="font-semibold text-background-900">{suggestion.format}</h6>
+                    </div>
+                    <div className="flex items-center gap-1.5">
+                      <span className="text-xs px-2 py-0.5 bg-green-100 text-green-700 rounded-full">
+                        适配{suggestion.suitability}%
+                      </span>
+                    </div>
+                  </div>
+                  <p className="text-xs text-background-500 mb-2">⏱️ 制作时长：{suggestion.productionTimeEstimate}</p>
+                  <div className="p-3 bg-white/70 rounded-lg mb-2">
+                    <p className="text-xs text-background-500 mb-1">💡 内容示例</p>
+                    <p className="text-sm text-background-800">{suggestion.example}</p>
+                  </div>
+                  {suggestion.bestPractices.length > 0 && (
+                    <div>
+                      <p className="text-xs text-background-500 mb-1">执行建议</p>
+                      <ul className="space-y-1">
+                        {suggestion.bestPractices.slice(0, 3).map((tip, j) => (
+                          <li key={j} className="text-xs text-background-600 leading-relaxed flex items-start gap-1.5">
+                            <span className="text-primary-500 mt-0.5">•</span>
+                            <span>{tip}</span>
+                          </li>
+                        ))}
+                      </ul>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          </div>
+        )}
+
+        {cautions.length > 0 && (
+          <div className="mb-4 p-4 bg-amber-50 rounded-xl">
+            <h6 className="text-sm font-semibold text-amber-800 mb-2 flex items-center gap-2">
+              <AlertTriangle className="w-4 h-4" />
+              注意事项
+            </h6>
+            <ul className="space-y-1.5">
+              {cautions.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-amber-700">
+                  <span className="text-amber-500 mt-0.5">•</span>
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
+
+        {callToActionSuggestions.length > 0 && (
+          <div className="p-4 bg-green-50 rounded-xl">
+            <h6 className="text-sm font-semibold text-green-800 mb-2 flex items-center gap-2">
+              <Zap className="w-4 h-4" />
+              CTA行动建议
+            </h6>
+            <ul className="space-y-1.5">
+              {callToActionSuggestions.map((item, i) => (
+                <li key={i} className="flex items-start gap-2 text-sm text-green-700">
+                  <CheckCircle2 className="w-4 h-4 text-green-500 flex-shrink-0 mt-0.5" />
+                  <span>{item}</span>
+                </li>
+              ))}
+            </ul>
+          </div>
+        )}
       </div>
     </div>
   );
@@ -1739,6 +2169,133 @@ function generateMarkdown(plan: MarketingPlan): string {
     lines.push('');
     lines.push(plan.executionPlan.optimizationPlan);
     lines.push('');
+  }
+
+  if (plan.hotTopicRecommendations) {
+    lines.push('## 九、热点借势推荐');
+    lines.push('');
+    lines.push('### 数据概览');
+    lines.push('');
+    lines.push(`- **扫描话题总数**：${plan.hotTopicRecommendations.totalTopicsScanned} 条  `);
+    lines.push(`- **推荐话题数量**：${plan.hotTopicRecommendations.recommendations.length} 条  `);
+    lines.push(`- **热门分类**：${plan.hotTopicRecommendations.trendingCategories.join('、') || '-'}  `);
+    lines.push(`- **生成时间**：${plan.hotTopicRecommendations.generatedAt}  `);
+    lines.push('');
+
+    if (plan.hotTopicRecommendations.marketInsights.length > 0) {
+      lines.push('### 市场洞察');
+      lines.push('');
+      plan.hotTopicRecommendations.marketInsights.forEach((insight, idx) => {
+        lines.push(`${idx + 1}. ${insight}`);
+      });
+      lines.push('');
+    }
+
+    lines.push('### 推荐话题详情');
+    lines.push('');
+    const platformMap: Record<string, string> = {
+      weibo: '微博热搜', douyin: '抖音挑战榜', xiaohongshu: '小红书趋势',
+      zhihu: '知乎热榜', bilibili: 'B站热门'
+    };
+    const priorityMap: Record<string, string> = {
+      's-tier': 'S级（必做）', 'a-tier': 'A级（推荐）',
+      'b-tier': 'B级（可选）', 'c-tier': 'C级（观望）'
+    };
+    const phaseMap: Record<string, string> = {
+      rising: '上升期', peak: '爆发期', declining: '衰退期', cooling: '冷却期'
+    };
+    const urgencyMap: Record<string, string> = {
+      critical: '极紧急', high: '紧急', medium: '适中', low: '宽松'
+    };
+    const fitLevelMap: Record<string, string> = {
+      perfect: '完美契合', high: '高度契合', medium: '中度契合', low: '低度契合'
+    };
+    const difficultyMap: Record<string, string> = {
+      easy: '简单', medium: '中等', hard: '困难'
+    };
+
+    plan.hotTopicRecommendations.recommendations.forEach((rec, idx) => {
+      lines.push(`#### ${idx + 1}. [${priorityMap[rec.priorityLevel]}] ${rec.topic.title}`);
+      lines.push('');
+      lines.push(`- **来源平台**：${platformMap[rec.topic.platform]}  `);
+      lines.push(`- **热度指数**：${rec.topic.heatIndex}万  `);
+      lines.push(`- **当前阶段**：${phaseMap[rec.heatCycle.currentPhase]}（剩余 ${rec.heatCycle.remainingHours} 小时）  `);
+      lines.push(`- **紧急程度**：${urgencyMap[rec.heatCycle.urgencyLevel]}  `);
+      lines.push(`- **综合匹配度**：${rec.overallFitScore}%  `);
+      lines.push(`- **品牌关联度**：${rec.brandRelevanceScore}%  `);
+      lines.push(`- **人群重叠度**：${rec.audienceOverlapScore}%  `);
+      lines.push(`- **品牌安全分**：${rec.topic.brandSafetyScore}分  `);
+      lines.push('');
+      lines.push(`**话题摘要**：${rec.topic.summary}  `);
+      lines.push('');
+      if (rec.topic.tags.length > 0) {
+        lines.push(`**话题标签**：${rec.topic.tags.map(t => `#${t}`).join(' ')}  `);
+        lines.push('');
+      }
+      lines.push(`**时间窗口**：${rec.heatCycle.explanation}  `);
+      lines.push(`- 黄金窗口期：${rec.heatCycle.goldenWindowStart} ~ ${rec.heatCycle.goldenWindowEnd}  `);
+      lines.push(`- 峰值时间：${rec.heatCycle.peakTime}  `);
+      lines.push('');
+
+      if (rec.brandValueAlignment.length > 0) {
+        lines.push(`**品牌价值契合**：${rec.brandValueAlignment.join('、')}  `);
+        lines.push('');
+      }
+      if (rec.targetAudienceMatch.length > 0) {
+        lines.push(`**目标人群匹配**：${rec.targetAudienceMatch.join('、')}  `);
+        lines.push('');
+      }
+
+      if (rec.leverageAngles.length > 0) {
+        lines.push('**切入角度建议**：');
+        lines.push('');
+        rec.leverageAngles.slice(0, 3).forEach((angle, i) => {
+          lines.push(`**${i + 1}. ${angle.title}**（${fitLevelMap[angle.fitLevel]}，难度 ${difficultyMap[angle.difficulty]}，风险 ${angle.riskLevel === 'high' ? '高' : angle.riskLevel === 'medium' ? '中' : '低'}）  `);
+          lines.push(`${angle.description}  `);
+          lines.push(`> 示例标题：${angle.exampleHook}  `);
+          if (angle.keyTalkingPoints.length > 0) {
+            lines.push(`> 传播要点：${angle.keyTalkingPoints.join('、')}  `);
+          }
+          lines.push('');
+        });
+      }
+
+      if (rec.contentSuggestions.length > 0) {
+        lines.push('**内容形式推荐**：');
+        lines.push('');
+        rec.contentSuggestions.slice(0, 4).forEach((suggestion, i) => {
+          lines.push(`**${i + 1}. ${suggestion.format}**（适配度 ${suggestion.suitability}%，制作时长 ${suggestion.productionTimeEstimate}）  `);
+          lines.push(`> 内容示例：${suggestion.example}  `);
+          if (suggestion.bestPractices.length > 0) {
+            lines.push(`> 执行建议：${suggestion.bestPractices.join('；')}  `);
+          }
+          lines.push('');
+        });
+      }
+
+      if (rec.cautions.length > 0) {
+        lines.push('⚠️ **注意事项**：');
+        lines.push('');
+        rec.cautions.forEach(item => lines.push(`- ${item}`));
+        lines.push('');
+      }
+
+      if (rec.callToActionSuggestions.length > 0) {
+        lines.push('⚡ **CTA行动建议**：');
+        lines.push('');
+        rec.callToActionSuggestions.forEach(item => lines.push(`- ${item}`));
+        lines.push('');
+      }
+    });
+
+    if (plan.hotTopicRecommendations.generalGuidelines.length > 0) {
+      lines.push('### 借势营销通用准则');
+      lines.push('');
+      plan.hotTopicRecommendations.generalGuidelines.forEach((guideline, idx) => {
+        lines.push(`${idx + 1}. ${guideline}  `);
+      });
+      lines.push('');
+    }
   }
 
   lines.push('---');

@@ -20,6 +20,21 @@ import {
   Layers,
   ArrowRight,
   Copy,
+  Flame,
+  TrendingUp,
+  Clock,
+  AlertTriangle,
+  BarChart3,
+  Info,
+  Shield,
+  Users,
+  Video,
+  FileText,
+  Image,
+  Radio,
+  Vote,
+  PlayCircle,
+  ChevronDown,
 } from 'lucide-react';
 import { useProjectStore } from '@/store/useProjectStore';
 import { generateStrategy, creativeFrameworks } from '@/engine/strategyEngine';
@@ -53,10 +68,61 @@ interface KeyMessage {
   description: string;
 }
 
+const heatLevelConfig: Record<string, { label: string; color: string; bgColor: string }> = {
+  explosive: { label: '爆', color: 'text-red-600', bgColor: 'bg-red-100' },
+  boiling: { label: '沸', color: 'text-orange-600', bgColor: 'bg-orange-100' },
+  hot: { label: '热', color: 'text-amber-600', bgColor: 'bg-amber-100' },
+  warm: { label: '温', color: 'text-yellow-600', bgColor: 'bg-yellow-100' },
+  rising: { label: '升', color: 'text-green-600', bgColor: 'bg-green-100' },
+};
+
+const priorityLevelConfig: Record<string, { label: string; color: string; ringColor: string }> = {
+  's-tier': { label: 'S级', color: 'text-red-600 bg-red-50', ringColor: 'ring-red-200' },
+  'a-tier': { label: 'A级', color: 'text-orange-600 bg-orange-50', ringColor: 'ring-orange-200' },
+  'b-tier': { label: 'B级', color: 'text-amber-600 bg-amber-50', ringColor: 'ring-amber-200' },
+  'c-tier': { label: 'C级', color: 'text-gray-600 bg-gray-50', ringColor: 'ring-gray-200' },
+};
+
+const platformConfig: Record<string, { label: string; color: string; icon: React.ReactNode }> = {
+  weibo: { label: '微博', color: 'text-red-600 bg-red-50', icon: <Flame className="w-3.5 h-3.5" /> },
+  douyin: { label: '抖音', color: 'text-pink-600 bg-pink-50', icon: <Video className="w-3.5 h-3.5" /> },
+  xiaohongshu: { label: '小红书', color: 'text-rose-600 bg-rose-50', icon: <BookOpen className="w-3.5 h-3.5" /> },
+  zhihu: { label: '知乎', color: 'text-blue-600 bg-blue-50', icon: <MessageSquare className="w-3.5 h-3.5" /> },
+  bilibili: { label: 'B站', color: 'text-sky-600 bg-sky-50', icon: <PlayCircle className="w-3.5 h-3.5" /> },
+};
+
+const urgencyConfig: Record<string, { label: string; textColor: string; dotColor: string }> = {
+  critical: { label: '紧急', textColor: 'text-red-600', dotColor: 'bg-red-500' },
+  high: { label: '较高', textColor: 'text-orange-600', dotColor: 'bg-orange-500' },
+  medium: { label: '中等', textColor: 'text-amber-600', dotColor: 'bg-amber-500' },
+  low: { label: '较低', textColor: 'text-gray-500', dotColor: 'bg-gray-400' },
+};
+
+const phaseConfig: Record<string, { label: string; color: string }> = {
+  rising: { label: '上升期', color: 'text-green-600 bg-green-50' },
+  peak: { label: '爆发期', color: 'text-red-600 bg-red-50' },
+  declining: { label: '衰退期', color: 'text-amber-600 bg-amber-50' },
+  cooling: { label: '冷却期', color: 'text-gray-500 bg-gray-50' },
+};
+
+const formatTypeIcon: Record<string, React.ReactNode> = {
+  shortVideo: <Video className="w-4 h-4" />,
+  longVideo: <PlayCircle className="w-4 h-4" />,
+  longArticle: <FileText className="w-4 h-4" />,
+  shortPost: <MessageSquare className="w-4 h-4" />,
+  imageSet: <Image className="w-4 h-4" />,
+  liveStream: <Radio className="w-4 h-4" />,
+  interactive: <Vote className="w-4 h-4" />,
+};
+
+interface ExpandedTopics {
+  [key: string]: { angles: boolean; content: boolean };
+}
+
 export default function StrategyPage() {
   const navigate = useNavigate();
   const { id } = useParams<{ id: string }>();
-  const { currentPlan, loadPlan, updateStrategy, saveCurrentPlan } = useProjectStore();
+  const { currentPlan, loadPlan, updateStrategy, saveCurrentPlan, generateHotTopicRecommendations } = useProjectStore();
 
   const [isGenerating, setIsGenerating] = useState(false);
   const [generationStep, setGenerationStep] = useState(0);
@@ -65,6 +131,8 @@ export default function StrategyPage() {
   const [editingTheme, setEditingTheme] = useState(false);
   const [editingMessageId, setEditingMessageId] = useState<string | null>(null);
   const [localKeyMessages, setLocalKeyMessages] = useState<KeyMessage[]>([]);
+  const [isGeneratingTopics, setIsGeneratingTopics] = useState(false);
+  const [expandedTopics, setExpandedTopics] = useState<ExpandedTopics>({});
 
   useEffect(() => {
     if (id && (!currentPlan || currentPlan.project.id !== id)) {
@@ -201,6 +269,41 @@ export default function StrategyPage() {
     if (field === 'description') {
       updateStrategy({ keyMessages: updated.map((m) => m.description) });
     }
+  };
+
+  const hotTopicRecs = currentPlan?.hotTopicRecommendations;
+  const hasHotTopics = hotTopicRecs && hotTopicRecs.recommendations.length > 0;
+
+  const handleGenerateHotTopics = async () => {
+    if (!brandInfo?.brandName || !brandInfo?.industry) return;
+
+    setIsGeneratingTopics(true);
+    await new Promise((resolve) => setTimeout(resolve, 800));
+    generateHotTopicRecommendations({
+      maxRecommendations: 6,
+    });
+    setIsGeneratingTopics(false);
+  };
+
+  const handleRefreshHotTopics = async () => {
+    await handleGenerateHotTopics();
+  };
+
+  const toggleTopicSection = (topicId: string, section: 'angles' | 'content') => {
+    setExpandedTopics(prev => ({
+      ...prev,
+      [topicId]: {
+        angles: section === 'angles' ? !prev[topicId]?.angles : (prev[topicId]?.angles ?? false),
+        content: section === 'content' ? !prev[topicId]?.content : (prev[topicId]?.content ?? false),
+      },
+    }));
+  };
+
+  const formatHeatIndex = (num: number) => {
+    if (num >= 10000) {
+      return (num / 10000).toFixed(1) + '万';
+    }
+    return num.toString();
   };
 
   const handleSave = () => {
@@ -791,6 +894,557 @@ export default function StrategyPage() {
                     </Card>
                   </motion.div>
                 )}
+
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ duration: 0.5, delay: 0.6 }}
+                >
+                  <Card>
+                    <CardHeader
+                      title={
+                        <div className="flex items-center gap-3">
+                          <div className="w-10 h-10 rounded-xl bg-gradient-to-br from-orange-400 to-red-500 flex items-center justify-center shadow-lg shadow-orange-200">
+                            <Flame className="w-5 h-5 text-white" />
+                          </div>
+                          <div>
+                            <h3 className="text-lg font-semibold text-background-900">热点借势推荐</h3>
+                            <p className="text-sm text-background-500 mt-0.5">实时监测社媒热点，智能筛选可借势话题</p>
+                          </div>
+                        </div>
+                      }
+                      action={
+                        hasHotTopics ? (
+                          <Button
+                            variant="outline"
+                            size="sm"
+                            leftIcon={<RefreshCw className={cn("w-4 h-4", isGeneratingTopics && "animate-spin")} />}
+                            onClick={handleRefreshHotTopics}
+                            disabled={isGeneratingTopics || !hasStrategy}
+                          >
+                            刷新热点
+                          </Button>
+                        ) : null
+                      }
+                    />
+                    <CardBody>
+                      {!hasStrategy ? (
+                        <div className="text-center py-10">
+                          <div className="w-16 h-16 mx-auto mb-4 rounded-2xl bg-background-100 flex items-center justify-center">
+                            <Flame className="w-8 h-8 text-background-400" />
+                          </div>
+                          <p className="text-background-500 mb-3">请先生成传播策略后再获取热点借势推荐</p>
+                        </div>
+                      ) : isGeneratingTopics ? (
+                        <div className="text-center py-12">
+                          <div className="relative w-20 h-20 mx-auto mb-5">
+                            <motion.div
+                              animate={{ rotate: 360 }}
+                              transition={{ duration: 2, repeat: Infinity, ease: "linear" }}
+                              className="absolute inset-0 rounded-full border-4 border-orange-200 border-t-orange-500"
+                            />
+                            <div className="absolute inset-0 flex items-center justify-center">
+                              <TrendingUp className="w-8 h-8 text-orange-500" />
+                            </div>
+                          </div>
+                          <h4 className="font-semibold text-background-900 mb-1">正在扫描全网热点...</h4>
+                          <p className="text-sm text-background-500">实时监测微博、抖音、小红书等平台热点</p>
+                        </div>
+                      ) : !hasHotTopics ? (
+                        <div className="text-center py-10">
+                          <div className="w-20 h-20 mx-auto mb-5 rounded-2xl bg-gradient-to-br from-orange-100 to-red-100 flex items-center justify-center">
+                            <Flame className="w-10 h-10 text-orange-500" />
+                          </div>
+                          <h4 className="text-xl font-bold text-background-900 mb-2">
+                            发现社媒借势机会
+                          </h4>
+                          <p className="text-background-500 mb-6 max-w-md mx-auto">
+                            智能监测微博热搜、抖音挑战榜、小红书趋势，筛选与品牌高度关联的热点话题，
+                            提供切入角度建议和内容形式推荐
+                          </p>
+                          <Button
+                            variant="primary"
+                            size="lg"
+                            leftIcon={<Wand2 className="w-5 h-5" />}
+                            onClick={handleGenerateHotTopics}
+                          >
+                            生成热点推荐
+                          </Button>
+                        </div>
+                      ) : (
+                        <div className="space-y-6">
+                          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+                            <div className="p-4 rounded-xl bg-gradient-to-br from-orange-50 to-red-50 border border-orange-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <BarChart3 className="w-4 h-4 text-orange-500" />
+                                <span className="text-xs font-medium text-orange-600">扫描话题</span>
+                              </div>
+                              <p className="text-2xl font-bold text-background-900">{hotTopicRecs.totalTopicsScanned}</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-gradient-to-br from-primary-50 to-accent-50 border border-primary-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Target className="w-4 h-4 text-primary-500" />
+                                <span className="text-xs font-medium text-primary-600">推荐数量</span>
+                              </div>
+                              <p className="text-2xl font-bold text-background-900">{hotTopicRecs.recommendations.length}</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-gradient-to-br from-green-50 to-emerald-50 border border-green-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <TrendingUp className="w-4 h-4 text-green-500" />
+                                <span className="text-xs font-medium text-green-600">热门分类</span>
+                              </div>
+                              <p className="text-sm font-bold text-background-900 truncate">{hotTopicRecs.trendingCategories.slice(0, 2).join('、')}</p>
+                            </div>
+                            <div className="p-4 rounded-xl bg-gradient-to-br from-violet-50 to-purple-50 border border-violet-100">
+                              <div className="flex items-center gap-2 mb-2">
+                                <Clock className="w-4 h-4 text-violet-500" />
+                                <span className="text-xs font-medium text-violet-600">生成时间</span>
+                              </div>
+                              <p className="text-sm font-bold text-background-900 truncate">{hotTopicRecs.generatedAt.split(' ')[1]}</p>
+                            </div>
+                          </div>
+
+                          {hotTopicRecs.marketInsights.length > 0 && (
+                            <div className="p-4 rounded-xl bg-background-50 border border-background-200">
+                              <h4 className="text-sm font-semibold text-background-900 mb-3 flex items-center gap-2">
+                                <Lightbulb className="w-4 h-4 text-amber-500" />
+                                市场洞察
+                              </h4>
+                              <ul className="space-y-2">
+                                {hotTopicRecs.marketInsights.map((insight, idx) => (
+                                  <li key={idx} className="flex items-start gap-2 text-sm text-background-600">
+                                    <span className="text-primary-500 mt-0.5">•</span>
+                                    <span>{insight}</span>
+                                  </li>
+                                ))}
+                              </ul>
+                            </div>
+                          )}
+
+                          <div className="space-y-4">
+                            {hotTopicRecs.recommendations.map((rec, idx) => {
+                              const topic = rec.topic;
+                              const heatCfg = heatLevelConfig[topic.heatLevel];
+                              const priorityCfg = priorityLevelConfig[rec.priorityLevel];
+                              const platformCfg = platformConfig[topic.platform];
+                              const urgencyCfg = urgencyConfig[rec.heatCycle.urgencyLevel];
+                              const phaseCfg = phaseConfig[rec.heatCycle.currentPhase];
+                              const isAnglesExpanded = expandedTopics[rec.id]?.angles ?? false;
+                              const isContentExpanded = expandedTopics[rec.id]?.content ?? false;
+
+                              return (
+                                <motion.div
+                                  key={rec.id}
+                                  initial={{ opacity: 0, y: 20 }}
+                                  animate={{ opacity: 1, y: 0 }}
+                                  transition={{ duration: 0.4, delay: idx * 0.05 }}
+                                  className={cn(
+                                    'relative rounded-2xl border overflow-hidden transition-all bg-white hover:shadow-lg',
+                                  )}
+                                  style={{ borderWidth: '1px' }}
+                                >
+                                  <div
+                                    className={cn(
+                                      'absolute left-0 top-0 bottom-0 w-1.5',
+                                      rec.priorityLevel === 's-tier' ? 'bg-gradient-to-b from-red-400 to-red-600' :
+                                      rec.priorityLevel === 'a-tier' ? 'bg-gradient-to-b from-orange-400 to-orange-600' :
+                                      rec.priorityLevel === 'b-tier' ? 'bg-gradient-to-b from-amber-400 to-amber-500' :
+                                      'bg-gradient-to-b from-gray-300 to-gray-400'
+                                    )}
+                                  />
+
+                                  <div className="p-5 pl-6">
+                                    <div className="flex flex-col md:flex-row md:items-start gap-4 mb-4">
+                                      <div className="flex-1 min-w-0">
+                                        <div className="flex flex-wrap items-center gap-2 mb-2">
+                                          <span className={cn(
+                                            'inline-flex items-center gap-1 px-2 py-1 rounded-lg text-xs font-bold',
+                                            priorityCfg.color
+                                          )}>
+                                            {priorityCfg.label}推荐
+                                          </span>
+                                          <span className={cn(
+                                            'inline-flex items-center gap-1 px-2 py-0.5 rounded-md text-xs font-medium',
+                                            platformCfg.color
+                                          )}>
+                                            {platformCfg.icon}
+                                            {platformCfg.label} · #{topic.platformRank}
+                                          </span>
+                                          <span className={cn(
+                                            'inline-flex items-center justify-center w-6 h-6 rounded-md text-xs font-bold',
+                                            heatCfg.bgColor, heatCfg.color
+                                          )}>
+                                            {heatCfg.label}
+                                          </span>
+                                          <span className={cn(
+                                            'inline-flex items-center px-2 py-0.5 rounded-md text-xs font-medium',
+                                            phaseCfg.color
+                                          )}>
+                                            {phaseCfg.label}
+                                          </span>
+                                        </div>
+                                        <h4 className="text-lg font-bold text-background-900 mb-1.5 leading-tight">
+                                          {topic.title}
+                                        </h4>
+                                        <p className="text-sm text-background-500 leading-relaxed mb-3">
+                                          {topic.summary}
+                                        </p>
+                                        <div className="flex flex-wrap gap-1.5 mb-2">
+                                          {topic.tags.slice(0, 5).map((tag, i) => (
+                                            <Tag key={i} color="gray" size="sm">
+                                              #{tag}
+                                            </Tag>
+                                          ))}
+                                        </div>
+                                      </div>
+
+                                      <div className="md:w-52 flex-shrink-0 space-y-2">
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-background-50">
+                                          <div className="flex items-center gap-2">
+                                            <Flame className="w-4 h-4 text-orange-500" />
+                                            <span className="text-xs text-background-500">热度指数</span>
+                                          </div>
+                                          <span className="font-bold text-orange-600">{formatHeatIndex(topic.heatIndex)}</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-background-50">
+                                          <div className="flex items-center gap-2">
+                                            <Target className="w-4 h-4 text-primary-500" />
+                                            <span className="text-xs text-background-500">综合匹配度</span>
+                                          </div>
+                                          <span className="font-bold text-primary-600">{Math.round(rec.overallFitScore * 100)}%</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-background-50">
+                                          <div className="flex items-center gap-2">
+                                            <Shield className="w-4 h-4 text-green-500" />
+                                            <span className="text-xs text-background-500">品牌安全</span>
+                                          </div>
+                                          <span className="font-bold text-green-600">{Math.round(topic.brandSafetyScore * 100)}分</span>
+                                        </div>
+                                        <div className="flex items-center justify-between p-2.5 rounded-lg bg-background-50">
+                                          <div className="flex items-center gap-2">
+                                            <span className={cn('w-2 h-2 rounded-full', urgencyCfg.dotColor)} />
+                                            <span className="text-xs text-background-500">时效性</span>
+                                          </div>
+                                          <span className={cn('font-bold', urgencyCfg.textColor)}>
+                                            {urgencyCfg.label}·{rec.heatCycle.remainingHours}h
+                                          </span>
+                                        </div>
+                                      </div>
+                                    </div>
+
+                                    <div className="grid grid-cols-1 md:grid-cols-3 gap-3 mb-4">
+                                      <div className="p-3 rounded-xl bg-primary-50/50 border border-primary-100">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                          <BarChart3 className="w-3.5 h-3.5 text-primary-500" />
+                                          <span className="text-xs font-medium text-primary-600">品牌关联度</span>
+                                        </div>
+                                        <div className="h-1.5 bg-primary-100 rounded-full overflow-hidden">
+                                          <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.round(rec.brandRelevanceScore * 100)}%` }}
+                                            transition={{ duration: 0.6, delay: 0.2 }}
+                                            className="h-full bg-gradient-to-r from-primary-500 to-primary-600 rounded-full"
+                                          />
+                                        </div>
+                                        <p className="text-right text-xs text-background-500 mt-1">{Math.round(rec.brandRelevanceScore * 100)}%</p>
+                                      </div>
+                                      <div className="p-3 rounded-xl bg-accent-50/50 border border-accent-100">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                          <Users className="w-3.5 h-3.5 text-accent-500" />
+                                          <span className="text-xs font-medium text-accent-600">人群重叠度</span>
+                                        </div>
+                                        <div className="h-1.5 bg-accent-100 rounded-full overflow-hidden">
+                                          <motion.div
+                                            initial={{ width: 0 }}
+                                            animate={{ width: `${Math.round(rec.audienceOverlapScore * 100)}%` }}
+                                            transition={{ duration: 0.6, delay: 0.3 }}
+                                            className="h-full bg-gradient-to-r from-accent-500 to-accent-600 rounded-full"
+                                          />
+                                        </div>
+                                        <p className="text-right text-xs text-background-500 mt-1">{Math.round(rec.audienceOverlapScore * 100)}%</p>
+                                      </div>
+                                      <div className="p-3 rounded-xl bg-violet-50/50 border border-violet-100">
+                                        <div className="flex items-center gap-2 mb-1.5">
+                                          <Clock className="w-3.5 h-3.5 text-violet-500" />
+                                          <span className="text-xs font-medium text-violet-600">黄金窗口期</span>
+                                        </div>
+                                        <p className="text-sm font-semibold text-background-900 leading-tight">
+                                          {rec.heatCycle.goldenWindowStart.split(' ')[1]} ~ {rec.heatCycle.goldenWindowEnd.split(' ')[1]}
+                                        </p>
+                                        <p className="text-xs text-violet-600 mt-0.5 truncate">{rec.heatCycle.explanation.slice(0, 25)}...</p>
+                                      </div>
+                                    </div>
+
+                                    {rec.brandValueAlignment.length > 0 && (
+                                      <div className="mb-3">
+                                        <div className="flex flex-wrap gap-1.5">
+                                          {rec.brandValueAlignment.map((align, i) => (
+                                            <span key={i} className="inline-flex items-center gap-1 px-2.5 py-1 rounded-full text-xs bg-green-50 text-green-700 border border-green-100">
+                                              <Check className="w-3 h-3" />
+                                              {align}
+                                            </span>
+                                          ))}
+                                        </div>
+                                      </div>
+                                    )}
+
+                                    {rec.targetAudienceMatch.length > 0 && (
+                                      <div className="mb-4 p-3 rounded-xl bg-accent-50/40 border border-accent-100">
+                                        <h5 className="text-xs font-semibold text-accent-700 mb-2 flex items-center gap-1.5">
+                                          <Users className="w-3.5 h-3.5" />
+                                          目标人群匹配
+                                        </h5>
+                                        <ul className="space-y-1">
+                                          {rec.targetAudienceMatch.map((match, i) => (
+                                            <li key={i} className="text-xs text-accent-800 flex items-start gap-1.5">
+                                              <span className="text-accent-500 mt-0.5">✓</span>
+                                              {match}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+
+                                    <button
+                                      onClick={() => toggleTopicSection(rec.id, 'angles')}
+                                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-background-50 transition-colors mb-2 group"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Lightbulb className="w-4 h-4 text-amber-500" />
+                                        <span className="font-semibold text-background-900 text-sm">
+                                          切入角度建议（{rec.leverageAngles.length}个方向）
+                                        </span>
+                                      </div>
+                                      <ChevronDown className={cn(
+                                        "w-4 h-4 text-background-400 transition-transform duration-200",
+                                        isAnglesExpanded && "rotate-180"
+                                      )} />
+                                    </button>
+
+                                    <AnimatePresence>
+                                      {isAnglesExpanded && (
+                                        <motion.div
+                                          initial={{ height: 0, opacity: 0 }}
+                                          animate={{ height: 'auto', opacity: 1 }}
+                                          exit={{ height: 0, opacity: 0 }}
+                                          transition={{ duration: 0.25 }}
+                                          className="overflow-hidden mb-3"
+                                        >
+                                          <div className="space-y-2.5 pb-1">
+                                            {rec.leverageAngles.map((angle, ai) => (
+                                              <div key={angle.id} className="p-3.5 rounded-xl border border-background-200 bg-white hover:border-primary-200 hover:shadow-sm transition-all">
+                                                <div className="flex items-start justify-between gap-3 mb-2">
+                                                  <div className="flex-1">
+                                                    <div className="flex items-center gap-2 mb-1">
+                                                      <h5 className="font-semibold text-background-900 text-sm">{angle.title}</h5>
+                                                      <span className={cn(
+                                                        'text-xs px-1.5 py-0.5 rounded',
+                                                        angle.fitLevel === 'perfect' ? 'bg-green-100 text-green-700' :
+                                                        angle.fitLevel === 'high' ? 'bg-primary-100 text-primary-700' :
+                                                        angle.fitLevel === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                                        'bg-gray-100 text-gray-600'
+                                                      )}>
+                                                        {angle.fitLevel === 'perfect' ? '完美契合' : angle.fitLevel === 'high' ? '高度契合' : angle.fitLevel === 'medium' ? '中度契合' : '一般契合'}
+                                                      </span>
+                                                    </div>
+                                                    <p className="text-xs text-background-500 leading-relaxed">{angle.description}</p>
+                                                  </div>
+                                                  <div className="flex flex-col items-end gap-1 flex-shrink-0">
+                                                    <span className={cn(
+                                                      'text-xs px-1.5 py-0.5 rounded',
+                                                      angle.difficulty === 'easy' ? 'bg-green-100 text-green-700' :
+                                                      angle.difficulty === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                                      'bg-red-100 text-red-700'
+                                                    )}>
+                                                      {angle.difficulty === 'easy' ? '易执行' : angle.difficulty === 'medium' ? '中等难度' : '高难度'}
+                                                    </span>
+                                                    <span className={cn(
+                                                      'text-xs px-1.5 py-0.5 rounded',
+                                                      angle.riskLevel === 'low' ? 'bg-green-100 text-green-700' :
+                                                      angle.riskLevel === 'medium' ? 'bg-amber-100 text-amber-700' :
+                                                      'bg-red-100 text-red-700'
+                                                    )}>
+                                                      {angle.riskLevel === 'low' ? '低风险' : angle.riskLevel === 'medium' ? '中风险' : '高风险'}
+                                                    </span>
+                                                  </div>
+                                                </div>
+                                                <div className="p-2.5 rounded-lg bg-gradient-to-r from-amber-50 to-orange-50 border border-amber-100 mb-2.5">
+                                                  <p className="text-xs text-amber-800 font-medium">💡 标题示例：{angle.exampleHook}</p>
+                                                </div>
+                                                <div>
+                                                  <p className="text-xs font-medium text-background-500 mb-1">核心传播要点：</p>
+                                                  <ul className="space-y-0.5">
+                                                    {angle.keyTalkingPoints.map((point, pi) => (
+                                                      <li key={pi} className="text-xs text-background-600 flex items-start gap-1.5">
+                                                        <span className="text-primary-500 mt-0.5">·</span>
+                                                        {point}
+                                                      </li>
+                                                    ))}
+                                                  </ul>
+                                                </div>
+                                              </div>
+                                            ))}
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+
+                                    <button
+                                      onClick={() => toggleTopicSection(rec.id, 'content')}
+                                      className="w-full flex items-center justify-between p-3 rounded-xl hover:bg-background-50 transition-colors mb-2 group"
+                                    >
+                                      <div className="flex items-center gap-2">
+                                        <Video className="w-4 h-4 text-primary-500" />
+                                        <span className="font-semibold text-background-900 text-sm">
+                                          内容形式推荐（追热点做短视频or长文？）
+                                        </span>
+                                      </div>
+                                      <ChevronDown className={cn(
+                                        "w-4 h-4 text-background-400 transition-transform duration-200",
+                                        isContentExpanded && "rotate-180"
+                                      )} />
+                                    </button>
+
+                                    <AnimatePresence>
+                                      {isContentExpanded && (
+                                        <motion.div
+                                          initial={{ height: 0, opacity: 0 }}
+                                          animate={{ height: 'auto', opacity: 1 }}
+                                          exit={{ height: 0, opacity: 0 }}
+                                          transition={{ duration: 0.25 }}
+                                          className="overflow-hidden mb-3"
+                                        >
+                                          <div className="grid grid-cols-1 md:grid-cols-2 gap-2.5 pb-1">
+                                            {rec.contentSuggestions.map((suggestion, si) => {
+                                              const engLevel = {
+                                                veryHigh: { label: '极高', color: 'text-red-600 bg-red-50' },
+                                                high: { label: '较高', color: 'text-orange-600 bg-orange-50' },
+                                                medium: { label: '中等', color: 'text-amber-600 bg-amber-50' },
+                                                low: { label: '较低', color: 'text-gray-500 bg-gray-50' },
+                                              }[suggestion.engagementPotential];
+
+                                              return (
+                                                <div key={si} className="p-3.5 rounded-xl border border-background-200 bg-gradient-to-br from-white to-background-50">
+                                                  <div className="flex items-start justify-between gap-2 mb-2">
+                                                    <div className="flex items-center gap-2">
+                                                      <span className={cn(
+                                                        "w-8 h-8 rounded-lg flex items-center justify-center",
+                                                        suggestion.formatType === 'shortVideo' ? 'bg-pink-100 text-pink-600' :
+                                                        suggestion.formatType === 'longVideo' ? 'bg-purple-100 text-purple-600' :
+                                                        suggestion.formatType === 'longArticle' ? 'bg-blue-100 text-blue-600' :
+                                                        suggestion.formatType === 'shortPost' ? 'bg-cyan-100 text-cyan-600' :
+                                                        suggestion.formatType === 'imageSet' ? 'bg-rose-100 text-rose-600' :
+                                                        suggestion.formatType === 'liveStream' ? 'bg-red-100 text-red-600' :
+                                                        'bg-violet-100 text-violet-600'
+                                                      )}>
+                                                        {formatTypeIcon[suggestion.formatType]}
+                                                      </span>
+                                                      <div>
+                                                        <h5 className="font-semibold text-background-900 text-sm">{suggestion.format}</h5>
+                                                        <span className="text-xs text-background-400">{platformConfig[suggestion.platform].label}平台推荐</span>
+                                                      </div>
+                                                    </div>
+                                                    <span className={cn('text-xs px-1.5 py-0.5 rounded font-medium', engLevel.color)}>
+                                                      互动潜力{engLevel.label}
+                                                    </span>
+                                                  </div>
+
+                                                  <div className="flex items-center gap-3 mb-2 text-xs">
+                                                    <span className="flex items-center gap-1 text-primary-600">
+                                                      <Target className="w-3 h-3" />
+                                                      适配度 {Math.round(suggestion.suitability * 100)}%
+                                                    </span>
+                                                    <span className="flex items-center gap-1 text-background-500">
+                                                      <Clock className="w-3 h-3" />
+                                                      {suggestion.productionTimeEstimate}
+                                                    </span>
+                                                  </div>
+
+                                                  <div className="p-2.5 rounded-lg bg-primary-50/50 border border-primary-100 mb-2">
+                                                    <p className="text-xs text-primary-800">📝 示例：{suggestion.example}</p>
+                                                  </div>
+
+                                                  <div>
+                                                    <p className="text-xs font-medium text-background-500 mb-1">执行建议：</p>
+                                                    <ul className="space-y-0.5">
+                                                      {suggestion.bestPractices.map((bp, bi) => (
+                                                        <li key={bi} className="text-xs text-background-600 flex items-start gap-1.5">
+                                                          <Check className="w-3 h-3 text-green-500 mt-0.5 flex-shrink-0" />
+                                                          {bp}
+                                                        </li>
+                                                      ))}
+                                                    </ul>
+                                                  </div>
+                                                </div>
+                                              );
+                                            })}
+                                          </div>
+                                        </motion.div>
+                                      )}
+                                    </AnimatePresence>
+
+                                    {rec.cautions.length > 0 && (
+                                      <div className="p-3 rounded-xl bg-amber-50 border border-amber-200 mb-3">
+                                        <h5 className="text-xs font-semibold text-amber-800 mb-2 flex items-center gap-1.5">
+                                          <AlertTriangle className="w-3.5 h-3.5" />
+                                          注意事项
+                                        </h5>
+                                        <ul className="space-y-1">
+                                          {rec.cautions.map((caution, i) => (
+                                            <li key={i} className="text-xs text-amber-700 flex items-start gap-1.5">
+                                              <span>⚠️</span>
+                                              {caution}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+
+                                    {rec.callToActionSuggestions.length > 0 && (
+                                      <div className="p-3 rounded-xl bg-green-50 border border-green-200">
+                                        <h5 className="text-xs font-semibold text-green-800 mb-2 flex items-center gap-1.5">
+                                          <Zap className="w-3.5 h-3.5" />
+                                          CTA行动建议
+                                        </h5>
+                                        <ul className="space-y-1">
+                                          {rec.callToActionSuggestions.map((cta, i) => (
+                                            <li key={i} className="text-xs text-green-700 flex items-start gap-1.5">
+                                              <span>👉</span>
+                                              {cta}
+                                            </li>
+                                          ))}
+                                        </ul>
+                                      </div>
+                                    )}
+                                  </div>
+                                </motion.div>
+                              );
+                            })}
+                          </div>
+
+                          {hotTopicRecs.generalGuidelines.length > 0 && (
+                            <div className="p-4 rounded-xl bg-gradient-to-r from-primary-50 to-accent-50 border border-primary-100">
+                              <h4 className="text-sm font-semibold text-background-900 mb-3 flex items-center gap-2">
+                                <Shield className="w-4 h-4 text-primary-600" />
+                                借势营销通用准则
+                              </h4>
+                              <div className="grid grid-cols-1 md:grid-cols-2 gap-2">
+                                {hotTopicRecs.generalGuidelines.map((guide, idx) => (
+                                  <div key={idx} className="flex items-start gap-2 text-sm text-background-700">
+                                    <span className="flex-shrink-0 w-5 h-5 rounded-full bg-white text-primary-600 text-xs font-bold flex items-center justify-center shadow-sm">
+                                      {idx + 1}
+                                    </span>
+                                    <span>{guide}</span>
+                                  </div>
+                                ))}
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
+                    </CardBody>
+                  </Card>
+                </motion.div>
               </>
             )}
           </AnimatePresence>

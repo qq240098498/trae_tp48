@@ -390,6 +390,112 @@ export interface ROIEstimationResult {
 }
 
 /**
+ * 社媒平台类型
+ */
+export type SocialPlatform = 'weibo' | 'douyin' | 'xiaohongshu' | 'zhihu' | 'bilibili'
+
+/**
+ * 热点话题
+ */
+export interface HotTopic {
+  id: string
+  title: string
+  platform: SocialPlatform
+  platformRank: number
+  heatIndex: number
+  heatLevel: 'explosive' | 'boiling' | 'hot' | 'warm' | 'rising'
+  category: string
+  tags: string[]
+  summary: string
+  keyKeywords: string[]
+  audienceDemographics: {
+    ageRange: string
+    genderRatio: string
+    coreCities: string[]
+  }
+  startedAt: string
+  peakDurationHours: number
+  estimatedLifecycleHours: number
+  sentimentScore: number
+  brandSafetyScore: number
+  contentExamples: string[]
+}
+
+/**
+ * 切入角度建议
+ */
+export interface LeverageAngle {
+  id: string
+  title: string
+  description: string
+  fitLevel: 'perfect' | 'high' | 'medium' | 'low'
+  difficulty: 'easy' | 'medium' | 'hard'
+  riskLevel: 'low' | 'medium' | 'high'
+  exampleHook: string
+  keyTalkingPoints: string[]
+}
+
+/**
+ * 内容形式推荐
+ */
+export interface ContentFormatSuggestion {
+  format: string
+  formatType: 'shortVideo' | 'longVideo' | 'longArticle' | 'shortPost' | 'imageSet' | 'liveStream' | 'interactive'
+  platform: SocialPlatform
+  suitability: number
+  productionTimeEstimate: string
+  engagementPotential: 'veryHigh' | 'high' | 'medium' | 'low'
+  example: string
+  bestPractices: string[]
+}
+
+/**
+ * 热度预估周期
+ */
+export interface HeatCycleEstimate {
+  currentPhase: 'rising' | 'peak' | 'declining' | 'cooling'
+  peakTime: string
+  goldenWindowStart: string
+  goldenWindowEnd: string
+  remainingHours: number
+  urgencyLevel: 'critical' | 'high' | 'medium' | 'low'
+  explanation: string
+}
+
+/**
+ * 单个热点的借势推荐方案
+ */
+export interface HotTopicRecommendation {
+  id: string
+  topic: HotTopic
+  brandRelevanceScore: number
+  audienceOverlapScore: number
+  overallFitScore: number
+  priorityLevel: 's-tier' | 'a-tier' | 'b-tier' | 'c-tier'
+  leverageAngles: LeverageAngle[]
+  contentSuggestions: ContentFormatSuggestion[]
+  heatCycle: HeatCycleEstimate
+  targetAudienceMatch: string[]
+  brandValueAlignment: string[]
+  cautions: string[]
+  callToActionSuggestions: string[]
+}
+
+/**
+ * 热点借势推荐结果集
+ */
+export interface HotTopicRecommendationResult {
+  id: string
+  generatedAt: string
+  monitoredPlatforms: SocialPlatform[]
+  totalTopicsScanned: number
+  recommendations: HotTopicRecommendation[]
+  trendingCategories: string[]
+  marketInsights: string[]
+  generalGuidelines: string[]
+}
+
+/**
  * 完整营销方案
  */
 export interface MarketingPlan {
@@ -402,4 +508,5 @@ export interface MarketingPlan {
   executionPlan: ExecutionPlan
   abTestPlans?: ABTestPlan[]
   roiEstimation?: ROIEstimationResult
+  hotTopicRecommendations?: HotTopicRecommendationResult
 }

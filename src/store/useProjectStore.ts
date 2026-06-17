@@ -12,11 +12,14 @@ import type {
   ROIEstimationParams,
   ROIEstimationResult,
   ChannelBudgetAllocation,
+  HotTopicRecommendationResult,
+  SocialPlatform,
 } from '@/types'
 import { savePlan, getPlan, deletePlan, getPlanList } from '@/utils/storage'
 import { generateId, deepClone, formatDateTime } from '@/utils/helpers'
 import { generateABTestPlan, generateMultipleABTestPlans, type ABTestGenerationOptions, type BatchABTestGenerationOptions } from '@/engine/abTestEngine'
 import { estimateROI } from '@/engine/roiEstimationEngine'
+import { generateHotTopicRecommendations, type HotTopicGenerationOptions } from '@/engine/hotTopicEngine'
 
 interface ProjectStore {
   currentPlan: MarketingPlan | null
@@ -49,6 +52,10 @@ interface ProjectStore {
   estimateROI: (allocations: ChannelBudgetAllocation[], confidenceLevel?: 'high' | 'medium' | 'low') => ROIEstimationResult | null
   updateROIEstimation: (result: ROIEstimationResult) => void
   clearROIEstimation: () => void
+
+  generateHotTopicRecommendations: (options?: HotTopicGenerationOptions) => HotTopicRecommendationResult | null
+  updateHotTopicRecommendations: (result: HotTopicRecommendationResult) => void
+  clearHotTopicRecommendations: () => void
 
   setCurrentPlan: (plan: MarketingPlan | null) => void
   clearError: () => void
@@ -145,6 +152,7 @@ function createEmptyPlan(name: string = '未命名方案'): MarketingPlan {
     },
     abTestPlans: [],
     roiEstimation: undefined,
+    hotTopicRecommendations: undefined,
   }
 }
 
@@ -521,6 +529,52 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     const updatedPlan = {
       ...currentPlan,
       roiEstimation: undefined,
+    }
+
+    set({ currentPlan: updatedPlan })
+  },
+
+  generateHotTopicRecommendations: (options?: HotTopicGenerationOptions): HotTopicRecommendationResult | null => {
+    const { currentPlan } = get()
+    if (!currentPlan) return null
+
+    const { brandInfo, targetAudience, strategy } = currentPlan
+
+    if (!brandInfo.brandName || !brandInfo.industry) {
+      return null
+    }
+
+    const result = generateHotTopicRecommendations(brandInfo, targetAudience, strategy, options)
+
+    const updatedPlan = {
+      ...currentPlan,
+      hotTopicRecommendations: result,
+    }
+
+    set({ currentPlan: updatedPlan })
+
+    return result
+  },
+
+  updateHotTopicRecommendations: (result: HotTopicRecommendationResult) => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    const updatedPlan = {
+      ...currentPlan,
+      hotTopicRecommendations: result,
+    }
+
+    set({ currentPlan: updatedPlan })
+  },
+
+  clearHotTopicRecommendations: () => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    const updatedPlan = {
+      ...currentPlan,
+      hotTopicRecommendations: undefined,
     }
 
     set({ currentPlan: updatedPlan })
