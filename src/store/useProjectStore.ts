@@ -9,10 +9,14 @@ import type {
   KPISettings,
   ExecutionPlan,
   ABTestPlan,
+  ROIEstimationParams,
+  ROIEstimationResult,
+  ChannelBudgetAllocation,
 } from '@/types'
 import { savePlan, getPlan, deletePlan, getPlanList } from '@/utils/storage'
 import { generateId, deepClone, formatDateTime } from '@/utils/helpers'
 import { generateABTestPlan, generateMultipleABTestPlans, type ABTestGenerationOptions, type BatchABTestGenerationOptions } from '@/engine/abTestEngine'
+import { estimateROI } from '@/engine/roiEstimationEngine'
 
 interface ProjectStore {
   currentPlan: MarketingPlan | null
@@ -41,6 +45,10 @@ interface ProjectStore {
   updateABTestPlan: (id: string, updates: Partial<ABTestPlan>) => void
   deleteABTestPlan: (id: string) => void
   getABTestPlanById: (id: string) => ABTestPlan | undefined
+
+  estimateROI: (allocations: ChannelBudgetAllocation[], confidenceLevel?: 'high' | 'medium' | 'low') => ROIEstimationResult | null
+  updateROIEstimation: (result: ROIEstimationResult) => void
+  clearROIEstimation: () => void
 
   setCurrentPlan: (plan: MarketingPlan | null) => void
   clearError: () => void
@@ -136,6 +144,7 @@ function createEmptyPlan(name: string = '未命名方案'): MarketingPlan {
       optimizationPlan: '',
     },
     abTestPlans: [],
+    roiEstimation: undefined,
   }
 }
 
@@ -457,6 +466,64 @@ export const useProjectStore = create<ProjectStore>((set, get) => ({
     if (!currentPlan || !currentPlan.abTestPlans) return undefined
 
     return currentPlan.abTestPlans.find((plan) => plan.id === id)
+  },
+
+  estimateROI: (allocations: ChannelBudgetAllocation[], confidenceLevel?: 'high' | 'medium' | 'low'): ROIEstimationResult | null => {
+    const { currentPlan } = get()
+    if (!currentPlan) return null
+
+    const { brandInfo, targetAudience } = currentPlan
+    const audienceTags = [
+      targetAudience.demographics.ageRange,
+      targetAudience.demographics.gender,
+      ...targetAudience.behaviors,
+      ...targetAudience.interests,
+    ].filter(Boolean)
+
+    const totalBudget = allocations.reduce((sum, a) => sum + a.budget, 0)
+
+    const params: ROIEstimationParams = {
+      industry: brandInfo.industry || '全行业',
+      totalBudget,
+      budgetAllocations: allocations,
+      audienceTags,
+      historicalConfidenceLevel: confidenceLevel || 'medium',
+    }
+
+    const result = estimateROI(params)
+
+    const updatedPlan = {
+      ...currentPlan,
+      roiEstimation: result,
+    }
+
+    set({ currentPlan: updatedPlan })
+
+    return result
+  },
+
+  updateROIEstimation: (result: ROIEstimationResult) => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    const updatedPlan = {
+      ...currentPlan,
+      roiEstimation: result,
+    }
+
+    set({ currentPlan: updatedPlan })
+  },
+
+  clearROIEstimation: () => {
+    const { currentPlan } = get()
+    if (!currentPlan) return
+
+    const updatedPlan = {
+      ...currentPlan,
+      roiEstimation: undefined,
+    }
+
+    set({ currentPlan: updatedPlan })
   },
 
   setCurrentPlan: (plan: MarketingPlan | null) => {

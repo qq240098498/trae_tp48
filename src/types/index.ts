@@ -288,6 +288,108 @@ export interface ABTestPlan {
 }
 
 /**
+ * 数值区间（乐观/保守）
+ */
+export interface ValueRange {
+  conservative: number
+  optimistic: number
+  unit: string
+}
+
+/**
+ * 单个渠道的ROI预估指标
+ */
+export interface ChannelROIEstimate {
+  channelId: string
+  channelName: string
+  channelType: 'socialMedia' | 'kolMarketing' | 'offlineEvents' | 'prRelations'
+  allocatedBudget: number
+  budgetRatio: number
+  impressions: ValueRange
+  clicks: ValueRange
+  ctr: ValueRange
+  conversions: ValueRange
+  cvr: ValueRange
+  cac: ValueRange
+  roi: ValueRange
+  confidence: number
+  dataSource: string[]
+}
+
+/**
+ * 整体ROI预估汇总
+ */
+export interface ROIOverallEstimate {
+  totalBudget: number
+  totalImpressions: ValueRange
+  totalClicks: ValueRange
+  overallCTR: ValueRange
+  totalConversions: ValueRange
+  overallCVR: ValueRange
+  overallCAC: ValueRange
+  overallROI: ValueRange
+  channelBreakdown: ChannelROIEstimate[]
+}
+
+/**
+ * 历史投放基准数据
+ */
+export interface HistoricalBenchmark {
+  id: string
+  industry: string
+  channelType: string
+  channelName: string
+  audienceSegment: string
+  sampleSize: number
+  avgImpressionsPerYuan: number
+  stdImpressionsPerYuan: number
+  avgCTR: number
+  stdCTR: number
+  avgCVR: number
+  stdCVR: number
+  avgCAC: number
+  stdCAC: number
+  avgROI: number
+  stdROI: number
+  dataTimestamp: string
+  notes?: string
+}
+
+/**
+ * 渠道预算分配方案
+ */
+export interface ChannelBudgetAllocation {
+  channelId: string
+  channelName: string
+  channelType: 'socialMedia' | 'kolMarketing' | 'offlineEvents' | 'prRelations'
+  budget: number
+}
+
+/**
+ * ROI预估输入参数
+ */
+export interface ROIEstimationParams {
+  industry: string
+  totalBudget: number
+  budgetAllocations: ChannelBudgetAllocation[]
+  audienceTags: string[]
+  historicalConfidenceLevel?: 'high' | 'medium' | 'low'
+}
+
+/**
+ * ROI预估结果
+ */
+export interface ROIEstimationResult {
+  id: string
+  params: ROIEstimationParams
+  estimate: ROIOverallEstimate
+  assumptions: string[]
+  limitations: string[]
+  generatedAt: string
+  dataPointsCount: number
+}
+
+/**
  * 完整营销方案
  */
 export interface MarketingPlan {
@@ -299,4 +401,5 @@ export interface MarketingPlan {
   kpiSettings: KPISettings
   executionPlan: ExecutionPlan
   abTestPlans?: ABTestPlan[]
+  roiEstimation?: ROIEstimationResult
 }
